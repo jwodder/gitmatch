@@ -81,7 +81,13 @@ CASES = [
     (["foo/**bar"], "foo/bar", False, True),
     (["foo/**bar"], "foo/qbar", False, True),
     (["foo/**bar"], "foo/glarch/bar", False, False),
-    (["foo**/bar"], "foo/glarch/bar", False, True),
+    pytest.param(
+        ["foo**/bar"],
+        "foo/glarch/bar",
+        False,
+        True,
+        marks=pytest.mark.xfail(reason="Is this a bug in Git?"),
+    ),
     (["foo**/bar"], "foo/bar", False, True),
     (["foo**/bar"], "fooq/bar", False, True),
     (["foo/**/bar"], "foo/bar", False, True),
@@ -127,6 +133,8 @@ CASES = [
     (["foo\\", "bar"], "foo\\bar", False, False),
     (["foo\\", "bar"], "foo\\", False, False),
     (["foo\\\\", "bar"], "foo\\", False, True),
+    (["foo\\\\ ", "bar"], "foo\\", False, True),
+    (["foo\\\\ ", "bar"], "foo\\ ", False, False),
     (["\\\\"], "\\", False, True),
     (["\\[ab]"], "[ab]", False, True),
     (["\\??\\?b"], "?a?b", False, True),
@@ -178,7 +186,6 @@ CASES = [
     (["a[c-c]rt"], "acrt", False, True),
     (["[[]ab]"], "[ab]", False, True),
     (["[[:]ab]"], "[ab]", False, True),
-    (["[[::]ab]"], "[ab]", False, False),
     (["[[:digit]ab]"], "[ab]", False, True),
     (["[\\[:]ab]"], "[ab]", False, True),
     (["[a-e-n]"], "j", False, False),
@@ -232,6 +239,8 @@ CASES = [
     (["[Z-y]"], "z", False, False),
     (["[Z-y]"], "z", True, True),
     (["[Z-y]"], "Z", False, True),
+    (["[[:]ab"], ":ab", False, True),
+    (["[:]ab"], ":ab", False, True),
     # POSIX character classes:
     (["[[:alnum:]]"], "a", False, True),
     (["[[:alnum:]]"], "A", False, True),
@@ -293,15 +302,12 @@ CASES = [
     (["[[:xdigit:]]"], "f", False, True),
     (["[[:xdigit:]]"], "D", False, True),
     (["[[:xdigit:]]"], "g", False, False),
-    (["[[:XDIGIT:]]"], "5", False, False),
-    (["[[:XDIGIT:]]"], "5", True, False),
     (["[[:alpha:]][[:digit:]][[:upper:]]"], "a1B", False, True),
     (["[[:digit:][:upper:][:space:]]"], "a", False, False),
     (["[[:digit:][:upper:][:space:]]"], "a", True, True),
     (["[[:digit:][:upper:][:space:]]"], "A", False, True),
     (["[[:digit:][:upper:][:space:]]"], "1", False, True),
     (["[[:digit:][:upper:][:space:]]"], " ", False, True),
-    (["[[:digit:][:upper:][:spaci:]]"], "1", False, False),
     (["[[:digit:][:upper:][:space:]]"], "*", False, False),
     (["[[:digit:][:punct:][:space:]]"], "*", False, True),
     (["[a-c[:digit:]x-z]"], "5", False, True),
@@ -309,7 +315,6 @@ CASES = [
     (["[a-c[:digit:]x-z]"], "y", False, True),
     (["[a-c[:digit:]x-z]"], "q", False, False),
     # Whitespace & comments:
-    ([""], "foo", False, False),
     ([" "], " ", False, False),
     (["#comment"], "#comment", False, False),
     ([" #comment"], " #comment", False, True),
@@ -320,6 +325,8 @@ CASES = [
     (["trailing\\  "], "trailing  ", False, False),
     (["trailing\\ \\ "], "trailing  ", False, True),
     (["trailing \\ "], "trailing  ", False, True),
+    (["foo\v"], "foo\v", False, True),
+    (["foo\v"], "foo", False, False),
     # Negation:
     (["!important"], "!important", False, False),
     (["!important"], "important", False, False),
@@ -341,6 +348,8 @@ CASES = [
     (["/*", "!/foo", "/foo/*", "!/foo/bar"], "quux/foo/bar", False, True),
     (["/*", "!/foo", "/foo/*", "!/foo/bar"], "foo/bar", False, False),
     # Invalid patterns:
+    ([""], "foo", False, False),
+    (["!"], "foo", False, False),
     (["\\"], "\\", False, False),
     (["[!"], "ab", False, False),
     (["[!"], "[!", False, False),
@@ -355,6 +364,13 @@ CASES = [
     (["[ab"], "a", False, False),
     (["[^ab"], "[^ab", False, False),
     (["[^ab"], "q", False, False),
+    (["[[:XDIGIT:]]"], "5", False, False),
+    (["[[:XDIGIT:]]"], "5", True, False),
+    (["[[:digit:][:upper:][:spaci:]]"], "1", False, False),
+    (["[[::]ab]"], "[ab]", False, False),
+    (["[[::]ab]"], "a", False, False),
+    (["[[:]ab]"], "a", False, False),
+    (["[[::]ab"], ":ab", False, False),
     # Corner cases:
     (["/"], "foo", False, False),
     (["/"], "foo/", False, False),
@@ -366,7 +382,6 @@ CASES = [
 ]
 
 
-@pytest.mark.xfail(raises=NotImplementedError)
 @pytest.mark.parametrize("patterns,path,ignorecase,matched", CASES)
 def test_match(patterns: list[str], path: str, ignorecase: bool, matched: bool) -> None:
     gi = gimatch.compile(patterns, ignorecase=ignorecase)
@@ -391,6 +406,9 @@ def test_check_against_git(
     (repo / ".gitignore").write_text(
         "".join(f"{pat}\n" for pat in patterns), encoding="utf-8"
     )
+    if path.startswith(":"):
+        # Escape pathspec
+        path = f"::{path}"
     r = subprocess.run(
         [
             "git",
