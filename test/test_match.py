@@ -104,6 +104,7 @@ CASES = [
     (["**/bar/*"], "quux/foo/bar/baz", False, True),
     (["**/bar/*"], "quux/foo/bar/baz/", False, True),
     (["**/bar/**"], "quux/foo/bar/baz/", False, True),
+    (["**/**"], "quux/foo/bar/baz", False, True),
     (["**/**/**"], "quux/foo/bar/baz", False, True),
     # Escaping:
     (["f\\oo"], "foo", False, True),
