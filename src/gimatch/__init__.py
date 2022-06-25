@@ -124,12 +124,12 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
     pos = 0
     regex = r"(?ai:" if ignorecase else r"(?a:"
 
-    gss = pattern.startswith("**/")
-    if gss or not re.search(r"^/|/.", pattern):
+    m = re.match(r"\*\*/(?:\*\*/)*", pattern)
+    if m or not re.search(r"^/|/.", pattern):
         regex += r"(?:[^/\0]+/)*"
-        if gss:
-            pos += 3
-    if not gss and pattern.startswith("/"):
+        if m:
+            pos += m.end()
+    if not m and pattern.startswith("/"):
         pos += 1
 
     while pos < len(pattern):
