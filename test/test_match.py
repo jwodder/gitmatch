@@ -18,6 +18,8 @@ CASES = [
     (["foo"], "bar/foo", False, True),
     (["foo"], "bar/baz/foo", False, True),
     (["foo"], "bar/foo/baz", False, True),
+    (["foo"], "foo/bar", False, True),
+    (["foo"], "foo/bar/baz", False, True),
     (["foo"], "FOO", False, False),
     (["foo"], "FOO", True, True),
     # Trailing slash:
@@ -362,9 +364,13 @@ CASES = [
     (["/*", "!/foo", "/foo/*", "!/foo/bar"], "foo/quux/gnusto", False, True),
     (["/*", "!/foo", "/foo/*", "!/foo/bar"], "quux/foo/bar", False, True),
     (["/*", "!/foo", "/foo/*", "!/foo/bar"], "foo/bar", False, False),
-    # Invalid patterns:
+    # Empty patterns:
     ([""], "foo", False, False),
     (["!"], "foo", False, False),
+    (["!/"], "foo/", False, False),
+    (["/"], "foo", False, False),
+    (["/"], "foo/", False, False),
+    # Invalid patterns:
     (["\\"], "\\", False, False),
     (["foo\\/"], "foo\\/", False, False),
     (["foo\\/"], "foo/", False, False),
@@ -388,8 +394,6 @@ CASES = [
     (["[[::]ab]"], "a", False, False),
     (["[[:]ab]"], "a", False, False),
     (["[[::]ab"], ":ab", False, False),
-    (["/"], "foo", False, False),
-    (["/"], "foo/", False, False),
 ]
 
 
