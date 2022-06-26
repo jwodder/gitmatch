@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+from linesep import split_terminated
 import pytest
 import gimatch
 
@@ -63,7 +64,7 @@ CASES = [
     (["*/foo"], "quux/bar/foo", False, False),
     (["*/*/*"], "foo", False, False),
     (["*/*/*"], "foo/bar", False, False),
-    (["foo/*"], "foo/", False, True),
+    (["foo/*"], "foo/", False, False),
     (["foo/*"], "foo/bar", False, True),
     (["*/bar*"], "foo/bar", False, True),
     (["*/bar*"], "foo/bar/baz", False, True),
@@ -75,11 +76,11 @@ CASES = [
     (["foo**bar"], "foo/bar", False, False),
     (["foo**bar"], "foo/quux/bar", False, False),
     (["foo/**"], "foo", False, False),
-    (["foo/**"], "foo/", False, True),
+    (["foo/**"], "foo/", False, False),
     (["foo/**"], "foo/bar", False, True),
     (["foo/**"], "quux/foo/bar", False, False),
     (["foo/**/**"], "foo", False, False),
-    (["foo/**/**"], "foo/", False, True),
+    (["foo/**/**"], "foo/", False, False),
     (["foo/**/**"], "foo/bar", False, True),
     (["foo/**/**"], "quux/foo/bar", False, False),
     (["foo/**bar"], "foo/bar", False, True),
@@ -299,8 +300,8 @@ CASES = [
     (["[[:punct:]]"], "~", False, True),
     (["[[:punct:]]"], "0", False, False),
     (["[[:punct:]]"], "p", False, False),
-    (["[[:punct:]]"], "/", False, False),
-    (["[^[:punct:]]"], "/", False, False),
+    (["foo[[:punct:]]bar"], "foo/bar", False, False),
+    (["foo[^[:punct:]]bar"], "foo/bar", False, False),
     (["[^[:punct:]]"], "x", False, True),
     (["[[:space:]]"], "\t", False, True),
     (["[[:space:]]"], "\n", False, True),
@@ -365,6 +366,8 @@ CASES = [
     ([""], "foo", False, False),
     (["!"], "foo", False, False),
     (["\\"], "\\", False, False),
+    (["foo\\/"], "foo\\/", False, False),
+    (["foo\\/"], "foo/", False, False),
     (["[!"], "ab", False, False),
     (["[!"], "[!", False, False),
     (["a[]b"], "ab", False, False),
@@ -387,12 +390,6 @@ CASES = [
     (["[[::]ab"], ":ab", False, False),
     (["/"], "foo", False, False),
     (["/"], "foo/", False, False),
-    # Matching os.curdir:
-    (["*"], ".", False, True),
-    (["*/"], "./", False, False),
-    ([".*"], ".", False, False),
-    ([".*"], "./", False, False),
-    (["[[:punct:]]"], ".", False, False),
 ]
 
 
@@ -420,9 +417,17 @@ def test_check_against_git(
     (repo / ".gitignore").write_text(
         "".join(f"{pat}\n" for pat in patterns), encoding="utf-8"
     )
-    if path.startswith(":"):
-        # Escape pathspec
-        path = f"::{path}"
+    p = Path(path)
+    (repo / p).parent.mkdir(parents=True, exist_ok=True)
+    if path.endswith("/"):
+        (repo / p).mkdir()
+        if len(p.parts) == 1:
+            # An empty directory will never show up in `git status`, so we need
+            # to put something in it
+            (repo / p / "XYZZY").touch()
+    else:
+        (repo / p).touch()
+    # Don't use git-check-ignore, as it's not 100% accurate for directories
     r = subprocess.run(
         [
             "git",
@@ -430,11 +435,28 @@ def test_check_against_git(
             f"core.excludesFile={os.devnull}",
             "-c",
             f"core.ignorecase={ignorecase}",
-            "check-ignore",
-            "-q",
-            "--",
-            path,
+            "status",
+            "--ignored=matching",
+            "--porcelain",
+            "-z",
         ],
         cwd=repo,
+        check=True,
+        stdout=subprocess.PIPE,
+        # Don't use `text=True`, as that translates newlines in filenames
     )
-    assert (r.returncode == 0) is matched
+    ((status, statpath),) = [
+        (line[:2], line[3:])
+        for line in split_terminated(os.fsdecode(r.stdout), "\0")
+        if line[3:] != ".gitignore"
+    ]
+    try:
+        # Make sure we're ignoring `path` or a parent thereof and not
+        # `{path}/XYZZY`
+        assert (status == "!!" and statpath in gimatch.pathway(path)) is matched
+    finally:
+        base = repo / p.parts[0]
+        if base.is_file():
+            base.unlink()
+        else:
+            shutil.rmtree(base)
