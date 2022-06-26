@@ -398,6 +398,13 @@ def test_match(patterns: list[str], path: str, ignorecase: bool, matched: bool) 
         assert gii.match(path)
 
 
+def test_match_bytes() -> None:
+    gi = gimatch.compile([b"foo", b"!bar"])
+    assert gi.match(b"foo")
+    assert not gi.match(b"bar")
+    assert gi.match(b"foo/bar")
+
+
 def test_empty_path() -> None:
     gi = gimatch.compile(["*"])
     with pytest.raises(gimatch.InvalidPathError) as excinfo:

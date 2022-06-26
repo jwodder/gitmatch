@@ -153,7 +153,7 @@ class ParserStrs(Generic[AnyStr]):
                 k.encode("us-ascii"): v.encode("us-ascii") for k, v in value.items()
             }
         else:
-            raise TypeError(value)
+            raise TypeError(value)  # pragma: no cover
 
 
 PARSER_STRS = ParserStrs(
