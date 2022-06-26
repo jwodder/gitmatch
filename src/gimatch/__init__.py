@@ -6,12 +6,12 @@ Visit <https://github.com/jwodder/gimatch> for more information.
 
 from __future__ import annotations
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 import os
 from pathlib import PureWindowsPath
 import posixpath
 import re
-from typing import AnyStr, Generic, Optional
+from typing import Any, AnyStr, Generic, Optional
 
 __version__ = "0.1.0.dev1"
 __author__ = "John Thorvald Wodder II"
@@ -27,24 +27,38 @@ class Gitignore(Generic[AnyStr]):
     def match(self, path: AnyStr | os.PathLike[AnyStr], is_dir: bool = False) -> bool:
         orig = path
         path = os.fspath(path)
+        if isinstance(path, str):
+            NUL = "\0"
+            SLASH = "/"
+            SEP = os.sep
+            WINSEP = "\\"
+            CURDIR = "."
+            PARDIR = ".."
+        else:
+            NUL = b"\0"
+            SLASH = b"/"
+            SEP = os.sep.encode("us-ascii")
+            WINSEP = b"\\"
+            CURDIR = b"."
+            PARDIR = b".."
         if not path:
             raise InvalidPathError(f"Empty path: {orig!r}")
-        if "\0" in path:
+        if NUL in path:
             raise InvalidPathError(f"Path contains NUL byte: {orig!r}")
         if os.path.isabs(path):
             raise InvalidPathError(f"Path is not relative: {orig!r}")
-        if os.sep != "/":
-            path = path.replace(os.sep, "/")
+        if SEP != SLASH:
+            path = path.replace(SEP, SLASH)
         elif isinstance(orig, PureWindowsPath):
-            path = path.replace("\\", "/")
-        if path.endswith("/"):
+            path = path.replace(WINSEP, SLASH)
+        if path.endswith(SLASH):
             is_dir = True
             path = path[:-1]
         if posixpath.normpath(path) != path:
             raise InvalidPathError(f"Path is not normalized: {orig!r}")
-        if path.split("/")[0] == "..":
+        if path.split(SLASH)[0] == PARDIR:
             raise InvalidPathError(f"Path cannot begin with '..': {orig!r}")
-        if path == ".":
+        if path == CURDIR:
             return False
         for p in pathway(path):
             for pat in reversed(self.patterns):
@@ -95,58 +109,132 @@ def compile(patterns: Iterable[AnyStr], ignorecase: bool = False) -> Gitignore[A
     return Gitignore(compiled_patterns)
 
 
-POSIX_CLASSES = {
-    "alpha": r"A-Za-z",
-    "alnum": r"A-Za-z0-9",
-    "blank": r" \t",
-    "cntrl": r"\0-\x1F\x7F",
-    "digit": r"0-9",
-    "graph": r"!-~",
-    "lower": r"a-z",
-    "print": r" -~",
-    "punct": r"!-/:-@[-`{-~",
-    "space": r"\t\n\r ",
-    "upper": r"A-Z",
-    "xdigit": r"0-9A-Fa-f",
-}
+@dataclass
+class ParserStrs(Generic[AnyStr]):
+    posix_classes: dict[AnyStr, AnyStr]
+    parser: re.Pattern[AnyStr]
+    range_parser: re.Pattern[AnyStr]
+    crlf: AnyStr
+    octothorpe: AnyStr
+    bang: AnyStr
+    slash: AnyStr
+    start: AnyStr
+    istart: AnyStr
+    end: AnyStr
+    leading_globstar_slash: re.Pattern[AnyStr]
+    is_anchored: re.Pattern[AnyStr]
+    unanchored_start: AnyStr
+    slash_globstar: AnyStr
+    slash_globstar_slash: AnyStr
+    globstar_slash: AnyStr
+    qm: AnyStr
+    star: AnyStr
+    openrange: AnyStr
+    caret: AnyStr
+    close_bracket: AnyStr
+    close_bracket_in_range: re.Pattern[AnyStr]
+    hyphen: AnyStr
 
-PARSER = re.compile(
-    r"""
-    (?P<slash_globstar>/\*\*\Z)
-    |(?P<slash_globstar_slash>/\*\*(/\*\*)*/)
-    |(?P<globstar_slash>\*\*/(\*\*/)*)
-    |(?P<qm>\?)
-    |(?P<star>\*\*?)
-    |(?P<openrange>\[)
-    |(?P<char>\x5C[^\0]|[^\0\x5C])
-""",
-    flags=re.X,
+    def encode(self: ParserStrs[str]) -> ParserStrs[bytes]:
+        return ParserStrs(
+            **{name: self.encode_field(value) for name, value in asdict(self).items()}
+        )
+
+    @staticmethod
+    def encode_field(value: Any) -> Any:
+        if isinstance(value, str):
+            return value.encode("us-ascii")
+        elif isinstance(value, re.Pattern):
+            return re.compile(
+                value.pattern.encode("us-ascii"), flags=value.flags & ~re.U
+            )
+        elif isinstance(value, dict):
+            return {
+                k.encode("us-ascii"): v.encode("us-ascii") for k, v in value.items()
+            }
+        else:
+            raise TypeError(value)
+
+
+PARSER_STRS = ParserStrs(
+    posix_classes={
+        "alpha": r"A-Za-z",
+        "alnum": r"A-Za-z0-9",
+        "blank": r" \t",
+        "cntrl": r"\0-\x1F\x7F",
+        "digit": r"0-9",
+        "graph": r"!-\~",
+        "lower": r"a-z",
+        "print": r" -\~",
+        "punct": r"!-/:-@[-`{-\~",
+        "space": r"\t\n\r ",
+        "upper": r"A-Z",
+        "xdigit": r"0-9A-Fa-f",
+    },
+    parser=re.compile(
+        r"""
+        (?P<slash_globstar>/\*\*\Z)
+        |(?P<slash_globstar_slash>/\*\*(/\*\*)*/)
+        |(?P<globstar_slash>\*\*/(\*\*/)*)
+        |(?P<qm>\?)
+        |(?P<star>\*\*?)
+        |(?P<openrange>\[)
+        |(?P<char>\x5C[^\0]|[^\0\x5C])
+    """,
+        flags=re.X,
+    ),
+    range_parser=re.compile(
+        r"""
+        (?P<left>\x5C[^\0]|[^\0\x5C])-(?P<right>\x5C[^\0]|[^\0\x5C\x5D])
+        |\[:(?P<posix_class>[^\]]*):\]
+        |(?P<char>\x5C[^\0]|[^\0\x5C\x5D])
+        |(?P<end>\])
+    """,
+        flags=re.X,
+    ),
+    crlf="\r\n",
+    octothorpe="#",
+    bang="!",
+    slash="/",
+    start=r"(?a:",
+    istart=r"(?ai:",
+    end=r")",
+    leading_globstar_slash=re.compile(r"\*\*/(?:\*\*/)*"),
+    is_anchored=re.compile(r"^/|/."),
+    unanchored_start=r"(?:[^/\0]+/)*",
+    slash_globstar=r"(?:(?:/[^/\0]+)+/?|/)",
+    slash_globstar_slash=r"/(?:[^/\0]+/)*",
+    globstar_slash=r"(?:[^/\0]*/)?(?:[^/\0]+/)*",
+    qm=r"[^/\0]",
+    star=r"[^/\0]*",
+    openrange=r"(?![/\0])[",
+    caret="^",
+    close_bracket="]",
+    close_bracket_in_range=re.compile(r"\](?!-[^\]])"),
+    hyphen="-",
 )
 
-RANGE_PARSER = re.compile(
-    r"""
-    (?P<left>\x5C[^\0]|[^\0\x5C])-(?P<right>\x5C[^\0]|[^\0\x5C\x5D])
-    |\[:(?P<posix_class>[^\]]*):\]
-    |(?P<char>\x5C[^\0]|[^\0\x5C\x5D])
-    |(?P<end>\])
-""",
-    flags=re.X,
-)
+PARSER_BYTES = PARSER_STRS.encode()
 
 
 def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[AnyStr]]:
+    strs: ParserStrs
+    if isinstance(pattern, str):
+        strs = PARSER_STRS
+    else:
+        strs = PARSER_BYTES
     orig = pattern
-    pattern = trim_trailing_spaces(pattern.rstrip("\r\n"))
-    if pattern.startswith("#"):
+    pattern = trim_trailing_spaces(pattern.rstrip(strs.crlf))
+    if pattern.startswith(strs.octothorpe):
         return None
-    if pattern.startswith("!"):
+    if pattern.startswith(strs.bang):
         negative = True
         pattern = pattern[1:]
         if not pattern:
             return None
     else:
         negative = False
-    if pattern.endswith("/"):
+    if pattern.endswith(strs.slash):
         dir_only = True
         pattern = pattern[:-1]
     else:
@@ -154,49 +242,51 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
     if not pattern:
         return None
     pos = 0
-    regex = r"(?ai:" if ignorecase else r"(?a:"
-    m = re.match(r"\*\*/(?:\*\*/)*", pattern)
-    if m or not re.search(r"^/|/.", pattern):
-        regex += r"(?:[^/\0]+/)*"
+    regex = strs.istart if ignorecase else strs.start
+    m = strs.leading_globstar_slash.match(pattern)
+    if m or not strs.is_anchored.search(pattern):
+        regex += strs.unanchored_start
         if m:
             pos += m.end()
-    if not m and pattern.startswith("/"):
+    if not m and pattern.startswith(strs.slash):
         pos += 1
     while pos < len(pattern):
-        m = PARSER.match(pattern, pos)
+        m = strs.parser.match(pattern, pos)
         if not m:
             raise InvalidPatternError(f"Invalid gitignore pattern: {orig!r}")
         pos += m.end() - m.start()
         if m["slash_globstar"] is not None:
-            regex += r"(?:(?:/[^/\0]+)+/?|/)"
+            regex += strs.slash_globstar
         elif m["slash_globstar_slash"] is not None:
-            regex += r"/(?:[^/\0]+/)*"
+            regex += strs.slash_globstar_slash
         elif m["globstar_slash"] is not None:
-            regex += r"(?:[^/\0]*/)?(?:[^/\0]+/)*"
+            regex += strs.globstar_slash
         elif m["qm"] is not None:
-            regex += r"[^/\0]"
+            regex += strs.qm
         elif m["star"] is not None:
-            regex += r"[^/\0]*"
+            regex += strs.star
         elif m["openrange"] is not None:
-            regex += r"(?![/\0])["
-            if pattern[pos : pos + 1] in ("^", "!"):
-                regex += "^"
+            regex += strs.openrange
+            if pattern[pos : pos + 1] in (strs.caret, strs.bang):
+                regex += strs.caret
                 pos += 1
-            if re.match(r"\](?!-[^\]])", pattern[pos:]):
-                regex += "]"
+            if strs.close_bracket_in_range.match(pattern, pos=pos):
+                regex += strs.close_bracket
                 pos += 1
             while True:
-                m = RANGE_PARSER.match(pattern, pos)
+                m = strs.range_parser.match(pattern, pos)
                 if not m:
                     raise InvalidPatternError(f"Invalid gitignore pattern: {orig!r}")
                 pos += m.end() - m.start()
                 if m["left"] is not None:
                     regex += (
-                        re.escape(m["left"][-1:]) + "-" + re.escape(m["right"][-1:])
+                        re.escape(m["left"][-1:])
+                        + strs.hyphen
+                        + re.escape(m["right"][-1:])
                     )
                 elif m["posix_class"] is not None:
                     try:
-                        regex += POSIX_CLASSES[m["posix_class"]]
+                        regex += strs.posix_classes[m["posix_class"]]
                     except KeyError:
                         raise InvalidPatternError(
                             f"Invalid gitignore pattern: {orig!r}"
@@ -204,7 +294,7 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
                 elif m["char"] is not None:
                     regex += re.escape(m["char"][-1:])
                 elif m["end"] is not None:
-                    regex += "]"
+                    regex += strs.close_bracket
                     break
                 else:
                     raise AssertionError(
@@ -214,7 +304,7 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
             regex += re.escape(m["char"][-1:])
         else:
             raise AssertionError("Unhandled pattern structure")  # pragma: no cover
-    regex += r")"
+    regex += strs.end
     return Regex(regex, negative, dir_only=dir_only)
 
 
@@ -235,5 +325,16 @@ def pathway(path: AnyStr) -> list[AnyStr]:
     return pway
 
 
+TRIM_RGX = r"(?<!\\)(?P<keep>(?:\\\\)*(\\[ \t])?)[ \t]*\Z"
+TRIM_STR = re.compile(TRIM_RGX)
+TRIM_BYTES = re.compile(TRIM_RGX.encode("us-ascii"))
+
+
 def trim_trailing_spaces(s: AnyStr) -> AnyStr:
-    return re.sub(r"(?<!\\)(?P<keep>(?:\\\\)*(\\[ \t])?)[ \t]*\Z", r"\g<keep>", s)
+    if isinstance(s, str):
+        rgx = TRIM_STR
+        keep = r"\g<keep>"
+    else:
+        rgx = TRIM_BYTES
+        keep = rb"\g<keep>"
+    return rgx.sub(keep, s)
