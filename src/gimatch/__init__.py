@@ -8,6 +8,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass
 import os
+from pathlib import PureWindowsPath
 import posixpath
 import re
 from typing import AnyStr, Generic, Optional
@@ -24,11 +25,27 @@ class Gitignore(Generic[AnyStr]):
     patterns: list[Pattern[AnyStr]]
 
     def match(self, path: AnyStr | os.PathLike[AnyStr], is_dir: bool = False) -> bool:
+        orig = path
         path = os.fspath(path)
-        ### TODO: Check path for relativeness and normalization, etc.
+        if not path:
+            raise InvalidPathError(f"Empty path: {orig!r}")
+        if "\0" in path:
+            raise InvalidPathError(f"Path contains NUL byte: {orig!r}")
+        if os.path.isabs(path):
+            raise InvalidPathError(f"Path is not relative: {orig!r}")
+        if os.sep != "/":
+            path = path.replace(os.sep, "/")
+        elif isinstance(orig, PureWindowsPath):
+            path = path.replace("\\", "/")
         if path.endswith("/"):
             is_dir = True
             path = path[:-1]
+        if posixpath.normpath(path) != path:
+            raise InvalidPathError(f"Path is not normalized: {orig!r}")
+        if path.split("/")[0] == "..":
+            raise InvalidPathError(f"Path cannot begin with '..': {orig!r}")
+        if path == ".":
+            return False
         for p in pathway(path):
             for pat in reversed(self.patterns):
                 if pat.match(p, is_dir=(is_dir if p == path else True)):
@@ -199,6 +216,10 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
             raise AssertionError("Unhandled pattern structure")  # pragma: no cover
     regex += r")"
     return Regex(regex, negative, dir_only=dir_only)
+
+
+class InvalidPathError(ValueError):
+    pass
 
 
 class InvalidPatternError(ValueError):

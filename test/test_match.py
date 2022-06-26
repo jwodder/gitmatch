@@ -1,11 +1,14 @@
 from __future__ import annotations
 import os
-from pathlib import Path
+import os.path
+from pathlib import Path, PureWindowsPath
 import shutil
 import subprocess
-from linesep import split_terminated
+from linesep import join_terminated, split_terminated
 import pytest
 import gimatch
+
+NOT_WINDOWS = pytest.mark.skipif(os.name == "nt", reason="Do not run on Windows")
 
 # Patterns, path, ignorecase, matched
 CASES = [
@@ -113,12 +116,12 @@ CASES = [
     (["**/**/**"], "quux/foo/bar/baz", False, True),
     # Escaping:
     (["f\\oo"], "foo", False, True),
-    (["f\\oo"], "f\\oo", False, False),
-    (["f\\\\oo"], "f\\oo", False, True),
+    pytest.param(["f\\oo"], "f\\oo", False, False, marks=NOT_WINDOWS),
+    pytest.param(["f\\\\oo"], "f\\oo", False, True, marks=NOT_WINDOWS),
     (["\\!important"], "!important", False, True),
     (["\\!important"], "important", False, False),
     (["\\#comment"], "#comment", False, True),
-    (["\\#comment"], "\\#comment", False, False),
+    pytest.param(["\\#comment"], "\\#comment", False, False, marks=NOT_WINDOWS),
     (["\\*scape"], "*scape", False, True),
     (["\\*scape"], "escape", False, False),
     (["\\*scape"], "scape", False, False),
@@ -127,7 +130,7 @@ CASES = [
     (["foo\\*bar"], "foo*bar", False, True),
     (["foo\\*bar"], "foobar", False, False),
     (["foo\\*bar"], "fooquuxbar", False, False),
-    (["foo\\*bar"], "foo\\*bar", False, False),
+    pytest.param(["foo\\*bar"], "foo\\*bar", False, False, marks=NOT_WINDOWS),
     (["\\x40home"], "@home", False, False),
     (["\\x40home"], "x40home", False, True),
     (["me\\x40home"], "me@home", False, False),
@@ -136,12 +139,12 @@ CASES = [
     (["foo\\", "bar"], "foo\n", False, False),
     (["foo\\", "bar"], "bar", False, True),
     (["foo\\", "bar"], "foobar", False, False),
-    (["foo\\", "bar"], "foo\\bar", False, False),
-    (["foo\\", "bar"], "foo\\", False, False),
-    (["foo\\\\", "bar"], "foo\\", False, True),
-    (["foo\\\\ ", "bar"], "foo\\", False, True),
-    (["foo\\\\ ", "bar"], "foo\\ ", False, False),
-    (["\\\\"], "\\", False, True),
+    pytest.param(["foo\\", "bar"], "foo\\bar", False, False, marks=NOT_WINDOWS),
+    pytest.param(["foo\\", "bar"], "foo\\", False, False, marks=NOT_WINDOWS),
+    pytest.param(["foo\\\\", "bar"], "foo\\", False, True, marks=NOT_WINDOWS),
+    pytest.param(["foo\\\\ ", "bar"], "foo\\", False, True, marks=NOT_WINDOWS),
+    pytest.param(["foo\\\\ ", "bar"], "foo\\ ", False, False, marks=NOT_WINDOWS),
+    pytest.param(["\\\\"], "\\", False, True, marks=NOT_WINDOWS),
     (["\\[ab]"], "[ab]", False, True),
     (["\\??\\?b"], "?a?b", False, True),
     (["\\a\\b\\c"], "abc", False, True),
@@ -202,8 +205,8 @@ CASES = [
     (["[\\\\-^]"], "[", False, False),
     (["[\\-_]"], "-", False, True),
     (["[\\]]"], "]", False, True),
-    (["[\\]]"], "\\]", False, False),
-    (["[\\]]"], "\\", False, False),
+    pytest.param(["[\\]]"], "\\]", False, False, marks=NOT_WINDOWS),
+    pytest.param(["[\\]]"], "\\", False, False, marks=NOT_WINDOWS),
     (["[--A]"], "-", False, True),
     (["[--A]"], "5", False, True),
     (["[ --]"], " ", False, True),
@@ -219,14 +222,14 @@ CASES = [
     (["[\\1-\\3]"], "4", False, False),
     (["[a^bc]"], "^", False, True),
     (["[a-]b]"], "-b]", False, True),
-    (["[\\]"], "\\", False, False),
-    (["[\\,]"], "\\", False, False),
+    pytest.param(["[\\]"], "\\", False, False, marks=NOT_WINDOWS),
+    pytest.param(["[\\,]"], "\\", False, False, marks=NOT_WINDOWS),
     (["[\\,]"], ",", False, True),
-    (["[\\\\]"], "\\", False, True),
-    (["[!\\\\]"], "\\", False, False),
+    pytest.param(["[\\\\]"], "\\", False, True, marks=NOT_WINDOWS),
+    pytest.param(["[!\\\\]"], "\\", False, False, marks=NOT_WINDOWS),
     (["[\\\\,]"], ",", False, True),
-    (["[\\\\,]"], "\\", False, True),
-    (["[[-\\]]"], "\\", False, True),
+    pytest.param(["[\\\\,]"], "\\", False, True, marks=NOT_WINDOWS),
+    pytest.param(["[[-\\]]"], "\\", False, True, marks=NOT_WINDOWS),
     (["[[-\\]]"], "[", False, True),
     (["[[-\\]]"], "]", False, True),
     (["[[-\\]]"], "-", False, False),
@@ -265,7 +268,7 @@ CASES = [
     (["[[:cntrl:]]"], "\n", False, True),
     (["[[:cntrl:]]"], "\t", False, True),
     (["[[:cntrl:]]"], " ", False, False),
-    (["[[:cntrl:]]"], "\\", False, False),
+    (["[[:cntrl:]]"], "^", False, False),
     (["[[:digit:]]"], "1", False, True),
     (["[[:digit:]]"], "a", False, False),
     (["[[:graph:]]"], "q", False, True),
@@ -287,7 +290,7 @@ CASES = [
     (["[[:print:]]"], "\n", False, False),
     (["[[:punct:]]"], "*", False, True),
     (["[[:punct:]]"], "_", False, True),
-    (["[[:punct:]]"], "\\", False, True),
+    pytest.param(["[[:punct:]]"], "\\", False, True, marks=NOT_WINDOWS),
     (["[[:punct:]]"], "~", False, True),
     (["[[:punct:]]"], "0", False, False),
     (["[[:punct:]]"], "p", False, False),
@@ -360,8 +363,8 @@ CASES = [
     (["/"], "foo", False, False),
     (["/"], "foo/", False, False),
     # Invalid patterns:
-    (["\\"], "\\", False, False),
-    (["foo\\/"], "foo\\/", False, False),
+    pytest.param(["\\"], "\\", False, False, marks=NOT_WINDOWS),
+    pytest.param(["foo\\/"], "foo\\/", False, False, marks=NOT_WINDOWS),
     (["foo\\/"], "foo/", False, False),
     (["[!"], "ab", False, False),
     (["[!"], "[!", False, False),
@@ -395,6 +398,61 @@ def test_match(patterns: list[str], path: str, ignorecase: bool, matched: bool) 
         assert gii.match(path)
 
 
+def test_empty_path() -> None:
+    gi = gimatch.compile(["*"])
+    with pytest.raises(gimatch.InvalidPathError) as excinfo:
+        gi.match("")
+    assert str(excinfo.value) == "Empty path: ''"
+
+
+def test_nul_in_path() -> None:
+    gi = gimatch.compile(["*"])
+    with pytest.raises(gimatch.InvalidPathError) as excinfo:
+        gi.match("foo\0bar")
+    assert str(excinfo.value) == "Path contains NUL byte: 'foo\\x00bar'"
+
+
+def test_absolute_path() -> None:
+    path = os.path.abspath(__file__)
+    gi = gimatch.compile(["*"])
+    with pytest.raises(gimatch.InvalidPathError) as excinfo:
+        gi.match(path)
+    assert str(excinfo.value) == f"Path is not relative: {path!r}"
+
+
+def test_windows_path() -> None:
+    gi = gimatch.compile(["bar"])
+    assert gi.match(PureWindowsPath("foo", "bar"))
+
+
+def test_explicit_is_dir() -> None:
+    gi = gimatch.compile(["foo/"])
+    assert gi.match("foo", is_dir=True)
+
+
+@pytest.mark.parametrize("path", ["./foo", "foo/.", "foo/..", "foo//bar"])
+def test_nonnormalized_path(path: str) -> None:
+    gi = gimatch.compile(["*"])
+    with pytest.raises(gimatch.InvalidPathError) as excinfo:
+        gi.match(path)
+    assert str(excinfo.value) == f"Path is not normalized: {path!r}"
+
+
+@pytest.mark.parametrize("path", ["..", "../", "../foo"])
+def test_pardir_path(path: str) -> None:
+    gi = gimatch.compile(["*"])
+    with pytest.raises(gimatch.InvalidPathError) as excinfo:
+        gi.match(path)
+    assert str(excinfo.value) == f"Path cannot begin with '..': {path!r}"
+
+
+@pytest.mark.parametrize("pattern", ["*", ".", "*/", "./", ".*", "[[:punct:]]"])
+def test_curdir_path(pattern: str) -> None:
+    gi = gimatch.compile([pattern])
+    assert not gi.match(".")
+    assert not gi.match("./")
+
+
 @pytest.fixture(scope="module")
 def repo(tmp_path_factory: pytest.TempPathFactory) -> Path:
     p = tmp_path_factory.mktemp("repo")
@@ -407,9 +465,7 @@ def repo(tmp_path_factory: pytest.TempPathFactory) -> Path:
 def test_check_against_git(
     repo: Path, patterns: list[str], path: str, ignorecase: bool, matched: bool
 ) -> None:
-    (repo / ".gitignore").write_text(
-        "".join(f"{pat}\n" for pat in patterns), encoding="utf-8"
-    )
+    (repo / ".gitignore").write_text(join_terminated(patterns, "\n"), encoding="utf-8")
     p = Path(path)
     (repo / p).parent.mkdir(parents=True, exist_ok=True)
     if path.endswith("/"):
