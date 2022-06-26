@@ -92,6 +92,13 @@ CASES = [
         True,
         marks=pytest.mark.xfail(reason="Is this a bug in Git?"),
     ),
+    pytest.param(
+        ["foo**/bar"],
+        "fooq/glarch/bar",
+        False,
+        True,
+        marks=pytest.mark.xfail(reason="Is this a bug in Git?"),
+    ),
     (["foo**/bar"], "foo/bar", False, True),
     (["foo**/bar"], "fooq/bar", False, True),
     (["foo/**/bar"], "foo/bar", False, True),
@@ -297,8 +304,8 @@ CASES = [
     (["[^[:punct:]]"], "x", False, True),
     (["[[:space:]]"], "\t", False, True),
     (["[[:space:]]"], "\n", False, True),
-    # (["[[:space:]]"], "\v", False, True),  # Not matched by Git; bug?
-    # (["[[:space:]]"], "\f", False, True),  # Not matched by Git; bug?
+    (["[[:space:]]"], "\v", False, False),  # Not matched by Git; bug?
+    (["[[:space:]]"], "\f", False, False),  # Not matched by Git; bug?
     (["[[:space:]]"], "\r", False, True),
     (["[[:space:]]"], " ", False, True),
     (["[[:upper:]]"], "A", False, True),
@@ -378,9 +385,9 @@ CASES = [
     (["[[::]ab]"], "a", False, False),
     (["[[:]ab]"], "a", False, False),
     (["[[::]ab"], ":ab", False, False),
-    # Corner cases:
     (["/"], "foo", False, False),
     (["/"], "foo/", False, False),
+    # Matching os.curdir:
     (["*"], ".", False, True),
     (["*/"], "./", False, False),
     ([".*"], ".", False, False),
