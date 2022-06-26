@@ -392,7 +392,7 @@ CASES = [
 @pytest.mark.parametrize("patterns,path,ignorecase,matched", CASES)
 def test_match(patterns: list[str], path: str, ignorecase: bool, matched: bool) -> None:
     gi = gimatch.compile(patterns, ignorecase=ignorecase)
-    assert gi.match(path) is matched
+    assert bool(gi.match(path)) is matched
     if matched and not ignorecase:
         gii = gimatch.compile(patterns, ignorecase=True)
         assert gii.match(path)
@@ -458,6 +458,26 @@ def test_curdir_path(pattern: str) -> None:
     gi = gimatch.compile([pattern])
     assert not gi.match(".")
     assert not gi.match("./")
+
+
+def test_retrieve_pattern() -> None:
+    gi = gimatch.compile(["foo ", "!bar"])
+    m = gi.match("foo")
+    assert m is not None
+    assert bool(m)
+    assert m.pattern == "foo"
+    assert m.path == "foo"
+    assert gi.match("quux") is None
+    m = gi.match("bar")
+    assert m is not None
+    assert not bool(m)
+    assert m.pattern == "!bar"
+    assert m.path == "bar"
+    m = gi.match("foo/bar")
+    assert m is not None
+    assert bool(m)
+    assert m.pattern == "foo"
+    assert m.path == "foo"
 
 
 @pytest.fixture(scope="module")

@@ -28,7 +28,9 @@ __url__ = "https://github.com/jwodder/gimatch"
 class Gitignore(Generic[AnyStr]):
     patterns: list[Pattern[AnyStr]]
 
-    def match(self, path: AnyStr | os.PathLike[AnyStr], is_dir: bool = False) -> bool:
+    def match(
+        self, path: AnyStr | os.PathLike[AnyStr], is_dir: bool = False
+    ) -> Optional[Match[AnyStr]]:
         orig = path
         path = os.fspath(path)
         if isinstance(path, str):
@@ -63,21 +65,35 @@ class Gitignore(Generic[AnyStr]):
         if path.split(SLASH)[0] == PARDIR:
             raise InvalidPathError(f"Path cannot begin with '..': {orig!r}")
         if path == CURDIR:
-            return False
+            return None
         for p in pathway(path):
             for pat in reversed(self.patterns):
                 if pat.match(p, is_dir=(is_dir if p == path else True)):
                     if not pat.negative:
-                        return True
+                        return Match(pat, p)
                     elif p == path:
-                        return False
+                        return Match(pat, p)
                     else:
                         break
-        return False
+        return None
+
+
+@dataclass
+class Match(Generic[AnyStr]):
+    pattern_obj: Pattern[AnyStr]
+    path: AnyStr
+
+    @property
+    def pattern(self) -> AnyStr:
+        return self.pattern_obj.pattern
+
+    def __bool__(self) -> bool:
+        return not self.pattern_obj.negative
 
 
 @dataclass
 class Pattern(Generic[AnyStr]):
+    pattern: AnyStr
     regex: re.Pattern[AnyStr]
     negative: bool
     dir_only: bool
@@ -90,13 +106,17 @@ class Pattern(Generic[AnyStr]):
 
 @dataclass
 class Regex(Generic[AnyStr]):
+    pattern: AnyStr
     regex: AnyStr
     negative: bool
     dir_only: bool
 
     def compile(self) -> Pattern[AnyStr]:
         return Pattern(
-            regex=re.compile(self.regex), negative=self.negative, dir_only=self.dir_only
+            pattern=self.pattern,
+            regex=re.compile(self.regex),
+            negative=self.negative,
+            dir_only=self.dir_only,
         )
 
 
@@ -228,7 +248,7 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
     else:
         strs = PARSER_BYTES
     orig = pattern
-    pattern = trim_trailing_spaces(pattern.rstrip(strs.crlf))
+    pattern = source = trim_trailing_spaces(pattern.rstrip(strs.crlf))
     if pattern.startswith(strs.octothorpe):
         return None
     if pattern.startswith(strs.bang):
@@ -309,7 +329,7 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
         else:
             raise AssertionError("Unhandled pattern structure")  # pragma: no cover
     regex += strs.end
-    return Regex(regex, negative, dir_only=dir_only)
+    return Regex(pattern=source, regex=regex, negative=negative, dir_only=dir_only)
 
 
 class InvalidPathError(ValueError):

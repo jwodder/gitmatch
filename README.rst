@@ -34,19 +34,19 @@ Example
 
 >>> import gimatch
 >>> gi = gimatch.compile(["foo", "!bar"])
->>> gi.match("foo")
+>>> bool(gi.match("foo"))
 True
->>> gi.match("bar")
+>>> bool(gi.match("bar"))
 False
->>> gi.match("quux")
+>>> bool(gi.match("quux"))
 False
->>> gi.match("foo/quux")
+>>> bool(gi.match("foo/quux"))
 True
->>> gi.match("foo/bar")
+>>> bool(gi.match("foo/bar"))
 True
->>> gi.match("bar/foo")
+>>> bool(gi.match("bar/foo"))
 True
->>> gi.match("bar/quux")
+>>> bool(gi.match("bar/quux"))
 False
 
 
