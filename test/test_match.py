@@ -88,20 +88,9 @@ CASES = [
     (["foo/**bar"], "foo/bar", False, True),
     (["foo/**bar"], "foo/qbar", False, True),
     (["foo/**bar"], "foo/glarch/bar", False, False),
-    pytest.param(
-        ["foo**/bar"],
-        "foo/glarch/bar",
-        False,
-        True,
-        marks=pytest.mark.xfail(reason="Is this a bug in Git?"),
-    ),
-    pytest.param(
-        ["foo**/bar"],
-        "fooq/glarch/bar",
-        False,
-        True,
-        marks=pytest.mark.xfail(reason="Is this a bug in Git?"),
-    ),
+    (["foo**/bar"], "foo/glarch/bar", False, True),  # Is this a bug in Git?
+    (["foo**/bar"], "fooq/glarch/bar", False, True),  # Is this a bug in Git?
+    (["foo**/bar"], "foobar", False, True),  # Is this a bug in Git?
     (["foo**/bar"], "foo/bar", False, True),
     (["foo**/bar"], "fooq/bar", False, True),
     (["foo/**/bar"], "foo/bar", False, True),

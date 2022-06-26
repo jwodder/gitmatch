@@ -97,6 +97,7 @@ PARSER = re.compile(
     r"""
     (?P<slash_globstar>/\*\*\Z)
     |(?P<slash_globstar_slash>/\*\*(/\*\*)*/)
+    |(?P<globstar_slash>\*\*/(\*\*/)*)
     |(?P<qm>\?)
     |(?P<star>\*\*?)
     |(?P<openrange>\[)
@@ -153,6 +154,8 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
             regex += r"(?:(?:/[^/\0]+)+/?|/)"
         elif m["slash_globstar_slash"] is not None:
             regex += r"/(?:[^/\0]+/)*"
+        elif m["globstar_slash"] is not None:
+            regex += r"(?:[^/\0]*/)?(?:[^/\0]+/)*"
         elif m["qm"] is not None:
             regex += r"[^/\0]"
         elif m["star"] is not None:
