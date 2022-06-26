@@ -28,10 +28,8 @@ def test_trim_trailing_spaces(long: str, trimmed: str) -> None:
     "path,ways",
     [
         ("foo", ["foo"]),
-        ("foo/", ["foo/"]),
-        ("foo/bar", ["foo/", "foo/bar"]),
-        ("foo/bar/", ["foo/", "foo/bar/"]),
-        ("foo/bar/baz/quux", ["foo/", "foo/bar/", "foo/bar/baz/", "foo/bar/baz/quux"]),
+        ("foo/bar", ["foo", "foo/bar"]),
+        ("foo/bar/baz/quux", ["foo", "foo/bar", "foo/bar/baz", "foo/bar/baz/quux"]),
     ],
 )
 def test_pathway(path: str, ways: list[str]) -> None:

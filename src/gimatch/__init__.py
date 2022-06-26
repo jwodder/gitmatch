@@ -26,11 +26,12 @@ class Gitignore(Generic[AnyStr]):
     def match(self, path: AnyStr | os.PathLike[AnyStr], is_dir: bool = False) -> bool:
         path = os.fspath(path)
         ### TODO: Check path for relativeness and normalization, etc.
-        if is_dir and not path.endswith("/") and path != os.curdir:
-            path += "/"
+        if path.endswith("/"):
+            is_dir = True
+            path = path[:-1]
         for p in pathway(path):
             for pat in reversed(self.patterns):
-                if pat.match(p):
+                if pat.match(p, is_dir=(is_dir if p == path else True)):
                     if not pat.negative:
                         return True
                     elif p == path:
@@ -44,8 +45,11 @@ class Gitignore(Generic[AnyStr]):
 class Pattern(Generic[AnyStr]):
     regex: re.Pattern[AnyStr]
     negative: bool
+    dir_only: bool
 
-    def match(self, path: AnyStr) -> bool:
+    def match(self, path: AnyStr, is_dir: bool = False) -> bool:
+        if self.dir_only and not is_dir:
+            return False
         return bool(self.regex.fullmatch(path))
 
 
@@ -53,9 +57,12 @@ class Pattern(Generic[AnyStr]):
 class Regex(Generic[AnyStr]):
     regex: AnyStr
     negative: bool
+    dir_only: bool
 
     def compile(self) -> Pattern[AnyStr]:
-        return Pattern(regex=re.compile(self.regex), negative=self.negative)
+        return Pattern(
+            regex=re.compile(self.regex), negative=self.negative, dir_only=self.dir_only
+        )
 
 
 def compile(patterns: Iterable[AnyStr], ignorecase: bool = False) -> Gitignore[AnyStr]:
@@ -112,7 +119,7 @@ RANGE_PARSER = re.compile(
 def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[AnyStr]]:
     orig = pattern
     pattern = trim_trailing_spaces(pattern.rstrip("\r\n"))
-    if pattern.startswith("#") or not pattern:
+    if pattern.startswith("#"):
         return None
     if pattern.startswith("!"):
         negative = True
@@ -121,9 +128,15 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
             return None
     else:
         negative = False
+    if pattern.endswith("/"):
+        dir_only = True
+        pattern = pattern[:-1]
+    else:
+        dir_only = False
+    if not pattern:
+        return None
     pos = 0
     regex = r"(?ai:" if ignorecase else r"(?a:"
-
     m = re.match(r"\*\*/(?:\*\*/)*", pattern)
     if m or not re.search(r"^/|/.", pattern):
         regex += r"(?:[^/\0]+/)*"
@@ -131,7 +144,6 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
             pos += m.end()
     if not m and pattern.startswith("/"):
         pos += 1
-
     while pos < len(pattern):
         m = PARSER.match(pattern, pos)
         if not m:
@@ -182,10 +194,8 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
             regex += re.escape(m["char"][-1:])
         else:
             raise AssertionError("Unhandled pattern structure")  # pragma: no cover
-    if not pattern.endswith(("/", "/**")):
-        regex += r"/?"
     regex += r")"
-    return Regex(regex, negative)
+    return Regex(regex, negative, dir_only=dir_only)
 
 
 class InvalidPatternError(ValueError):
@@ -194,10 +204,9 @@ class InvalidPatternError(ValueError):
 
 def pathway(path: AnyStr) -> list[AnyStr]:
     pway: list[AnyStr] = []
-    slash: AnyStr = "/" if isinstance(path, str) else b"/"
-    while path != slash:
+    while path:
         pway.append(path)
-        path = posixpath.dirname(path.rstrip(slash)) + slash
+        path = posixpath.dirname(path)
     pway.reverse()
     return pway
 

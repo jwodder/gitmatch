@@ -450,10 +450,11 @@ def test_check_against_git(
         for line in split_terminated(os.fsdecode(r.stdout), "\0")
         if line[3:] != ".gitignore"
     ]
+    pathway = [path] + [str(pp) + "/" for pp in p.parents][:-1]
     try:
         # Make sure we're ignoring `path` or a parent thereof and not
         # `{path}/XYZZY`
-        assert (status == "!!" and statpath in gimatch.pathway(path)) is matched
+        assert (status == "!!" and statpath in pathway) is matched
     finally:
         base = repo / p.parts[0]
         if base.is_file():
