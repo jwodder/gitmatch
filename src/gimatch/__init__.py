@@ -1,6 +1,10 @@
 """
 Gitignore-style path matching
 
+``gimatch`` provides ``gitignore``-style pattern matching of file paths.
+Simply pass in a sequence of ``gitignore`` patterns and you'll get back an
+object for testing whether a given relative path matches the patterns.
+
 Visit <https://github.com/jwodder/gimatch> for more information.
 """
 
