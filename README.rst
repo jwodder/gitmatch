@@ -150,3 +150,24 @@ Specifically:
 - A path containing a NUL character will never match any pattern
 
 - A pattern will never match the current directory
+
+
+Strings vs. Bytes
+=================
+
+While it's usual in Python to work with ``str`` values of Unicode characters,
+Git instead operates on bytes.  As a result, if a path or pattern contains
+non-ASCII characters, you may get different results using ``str``\s with
+``gimatch`` than you would with Git.  For example, in Git, a file named
+"``tést``" will not be matched by the gitignore pattern ``t?st``, because the
+``é`` is encoded using more than one byte (assuming UTF-8), but if you pass
+these strings to ``gimatch``, the path will match (assuming the ``é`` is in
+composed form, which is a whole other can of worms).  If you want Git's
+behavior exactly, pass ``bytes`` to ``gimatch`` instead of ``str`` (ideally
+encoded using ``os.fsencode()``).
+
+Note that the patterns passed to a single call to ``compile()`` must be either
+all ``str`` or all ``bytes``, and a ``Gitignore`` instance constructed from
+``str`` patterns can only match against ``str`` paths, while one constructed
+from ``bytes`` patterns can only match against ``bytes`` paths.  (For the
+record, the ``pathlib`` classes count as ``str`` paths.)
