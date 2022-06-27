@@ -1,5 +1,5 @@
 import pytest
-from gimatch import pathway, trim_trailing_spaces
+from gimatch import chomp, pathway, trim_trailing_spaces
 
 
 @pytest.mark.parametrize(
@@ -34,3 +34,24 @@ def test_trim_trailing_spaces(long: str, trimmed: str) -> None:
 )
 def test_pathway(path: str, ways: list[str]) -> None:
     assert pathway(path) == ways
+
+
+@pytest.mark.parametrize(
+    "s,chomped",
+    [
+        ("", ""),
+        ("\n", ""),
+        ("\r", ""),
+        ("\r\n", ""),
+        ("foobar", "foobar"),
+        ("foobar\n", "foobar"),
+        ("foobar\r\n", "foobar"),
+        ("foobar\r", "foobar"),
+        ("foobar\n\r", "foobar\n"),
+        ("foobar\n\n", "foobar\n"),
+        ("foobar\nbaz", "foobar\nbaz"),
+    ],
+)
+def test_chomp(s: str, chomped: str) -> None:
+    assert chomp(s) == chomped
+    assert chomp(s.encode("us-ascii")) == chomped.encode("us-ascii")

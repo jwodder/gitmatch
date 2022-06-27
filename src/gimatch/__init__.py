@@ -207,13 +207,21 @@ def compile(patterns: Iterable[AnyStr], ignorecase: bool = False) -> Gitignore[A
     Compile a collection of gitignore patterns into a `Gitignore` instance.
     Any invalid or empty patterns are discarded.
 
+    Trailing newlines are stripped from the patterns before compiling, so you
+    can compile a pre-existing :file:`.gitignore` file by simply doing:
+
+    .. code:: python
+
+        with open("path/to/.gitignore") as fp:
+            gi = compile(fp)
+
     :param bool ignorecase:
         Whether the patterns should match case-insensitively
     """
     compiled_patterns: list[Pattern[AnyStr]] = []
     for pat in patterns:
         try:
-            regex = pattern2regex(pat, ignorecase=ignorecase)
+            regex = pattern2regex(chomp(pat), ignorecase=ignorecase)
         except InvalidPatternError:
             continue
         if regex is None:
@@ -231,7 +239,6 @@ class ParserStrs(Generic[AnyStr]):
     posix_classes: dict[AnyStr, AnyStr]
     parser: re.Pattern[AnyStr]
     range_parser: re.Pattern[AnyStr]
-    crlf: AnyStr
     octothorpe: AnyStr
     bang: AnyStr
     slash: AnyStr
@@ -309,7 +316,6 @@ PARSER_STRS = ParserStrs(
     """,
         flags=re.X,
     ),
-    crlf="\r\n",
     octothorpe="#",
     bang="!",
     slash="/",
@@ -347,7 +353,7 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
     else:
         strs = PARSER_BYTES
     orig = pattern
-    pattern = source = trim_trailing_spaces(pattern.rstrip(strs.crlf))
+    pattern = source = trim_trailing_spaces(pattern)
     if pattern.startswith(strs.octothorpe):
         return None
     if pattern.startswith(strs.bang):
@@ -474,3 +480,12 @@ def trim_trailing_spaces(s: AnyStr) -> AnyStr:
         rgx = TRIM_BYTES
         keep = rb"\g<keep>"
     return rgx.sub(keep, s)
+
+
+def chomp(s: AnyStr) -> AnyStr:
+    """Remove trailing newline, if any"""
+    if s and ord(s[-1:]) == 10:
+        s = s[:-1]
+    if s and ord(s[-1:]) == 13:
+        s = s[:-1]
+    return s

@@ -511,6 +511,14 @@ def test_invalid_pattern(pattern: str) -> None:
     assert str(excinfo.value) == f"Invalid gitignore pattern: {pattern!r}"
 
 
+@pytest.mark.parametrize("pattern", ["foo\n", "foo\r", "foo\r\n"])
+def test_strip_newlines(pattern: str) -> None:
+    gi = gimatch.compile([pattern])
+    m = gi.match("foo")
+    assert m is not None
+    assert m.pattern == "foo"
+
+
 @pytest.fixture(scope="module")
 def repo(tmp_path_factory: pytest.TempPathFactory) -> Path:
     p = tmp_path_factory.mktemp("repo")
