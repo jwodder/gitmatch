@@ -3,20 +3,15 @@ import os
 import os.path
 from pathlib import Path, PureWindowsPath
 import platform
+import re
 import shutil
 import subprocess
 from linesep import join_terminated, split_terminated
 import pytest
 import gitmatch
 
-NOT_WINDOWS = pytest.mark.skipif(
-    os.name == "nt", reason="Test uses an invalid filename on Windows"
-)
-
-NOT_WIN_PYPY = pytest.mark.skipif(
-    os.name == "nt" and platform.python_implementation() == "PyPy",
-    reason="Non-ASCII filenames are a problem for PyPy on Windows",
-)
+ON_WINDOWS = os.name == "nt"
+ON_PYPY = platform.python_implementation() == "PyPy"
 
 # Patterns, path, ignorecase, matched
 CASES = [
@@ -57,7 +52,7 @@ CASES = [
     (["f*o"], "fo", False, True),
     (["f*o"], "fglarcho", False, True),
     (["f*o"], "f/o", False, False),
-    pytest.param(["f*o"], "føo", False, True, marks=NOT_WIN_PYPY),
+    (["f*o"], "føo", False, True),
     (["f/*o"], "f/o", False, True),
     (["f/*o"], "f/glarch/o", False, False),
     (["*"], "foo", False, True),
@@ -124,37 +119,37 @@ CASES = [
     (["**/**/**"], "quux/foo/bar/baz", False, True),
     # Escaping:
     (["f\\oo"], "foo", False, True),
-    pytest.param(["f\\oo"], "f\\oo", False, False, marks=NOT_WINDOWS),
-    pytest.param(["f\\\\oo"], "f\\oo", False, True, marks=NOT_WINDOWS),
+    (["f\\oo"], "f\\oo", False, False),
+    (["f\\\\oo"], "f\\oo", False, True),
     (["\\!important"], "!important", False, True),
     (["\\!important"], "important", False, False),
     (["\\#comment"], "#comment", False, True),
-    pytest.param(["\\#comment"], "\\#comment", False, False, marks=NOT_WINDOWS),
-    pytest.param(["\\*scape"], "*scape", False, True, marks=NOT_WINDOWS),
+    (["\\#comment"], "\\#comment", False, False),
+    (["\\*scape"], "*scape", False, True),
     (["\\*scape"], "escape", False, False),
     (["\\*scape"], "scape", False, False),
-    pytest.param(["\\?scape"], "?scape", False, True, marks=NOT_WINDOWS),
+    (["\\?scape"], "?scape", False, True),
     (["\\?scape"], "escape", False, False),
-    pytest.param(["foo\\*bar"], "foo*bar", False, True, marks=NOT_WINDOWS),
+    (["foo\\*bar"], "foo*bar", False, True),
     (["foo\\*bar"], "foobar", False, False),
     (["foo\\*bar"], "fooquuxbar", False, False),
-    pytest.param(["foo\\*bar"], "foo\\*bar", False, False, marks=NOT_WINDOWS),
+    (["foo\\*bar"], "foo\\*bar", False, False),
     (["\\x40home"], "@home", False, False),
     (["\\x40home"], "x40home", False, True),
     (["me\\x40home"], "me@home", False, False),
     (["me\\x40home"], "mex40home", False, True),
     (["foo\\", "bar"], "foo", False, False),
-    pytest.param(["foo\\", "bar"], "foo\n", False, False, marks=NOT_WINDOWS),
+    (["foo\\", "bar"], "foo\n", False, False),
     (["foo\\", "bar"], "bar", False, True),
     (["foo\\", "bar"], "foobar", False, False),
-    pytest.param(["foo\\", "bar"], "foo\\bar", False, False, marks=NOT_WINDOWS),
-    pytest.param(["foo\\", "bar"], "foo\\", False, False, marks=NOT_WINDOWS),
-    pytest.param(["foo\\\\", "bar"], "foo\\", False, True, marks=NOT_WINDOWS),
-    pytest.param(["foo\\\\ ", "bar"], "foo\\", False, True, marks=NOT_WINDOWS),
-    pytest.param(["foo\\\\ ", "bar"], "foo\\ ", False, False, marks=NOT_WINDOWS),
-    pytest.param(["\\\\"], "\\", False, True, marks=NOT_WINDOWS),
+    (["foo\\", "bar"], "foo\\bar", False, False),
+    (["foo\\", "bar"], "foo\\", False, False),
+    (["foo\\\\", "bar"], "foo\\", False, True),
+    (["foo\\\\ ", "bar"], "foo\\", False, True),
+    (["foo\\\\ ", "bar"], "foo\\ ", False, False),
+    (["\\\\"], "\\", False, True),
     (["\\[ab]"], "[ab]", False, True),
-    pytest.param(["\\??\\?b"], "?a?b", False, True, marks=NOT_WINDOWS),
+    (["\\??\\?b"], "?a?b", False, True),
     (["\\a\\b\\c"], "abc", False, True),
     # Character classes:
     (["[abc]ar"], "bar", False, True),
@@ -215,11 +210,11 @@ CASES = [
     (["[\\\\-^]"], "[", False, False),
     (["[\\-_]"], "-", False, True),
     (["[\\]]"], "]", False, True),
-    pytest.param(["[\\]]"], "\\]", False, False, marks=NOT_WINDOWS),
-    pytest.param(["[\\]]"], "\\", False, False, marks=NOT_WINDOWS),
+    (["[\\]]"], "\\]", False, False),
+    (["[\\]]"], "\\", False, False),
     (["[--A]"], "-", False, True),
     (["[--A]"], "5", False, True),
-    pytest.param(["[ --]"], " ", False, True, marks=NOT_WINDOWS),
+    (["[ --]"], " ", False, True),
     (["[ --]"], "$", False, True),
     (["[ --]"], "-", False, True),
     (["[ --]"], "0", False, False),
@@ -232,14 +227,14 @@ CASES = [
     (["[\\1-\\3]"], "4", False, False),
     (["[a^bc]"], "^", False, True),
     (["[a-]b]"], "-b]", False, True),
-    pytest.param(["[\\]"], "\\", False, False, marks=NOT_WINDOWS),
-    pytest.param(["[\\,]"], "\\", False, False, marks=NOT_WINDOWS),
+    (["[\\]"], "\\", False, False),
+    (["[\\,]"], "\\", False, False),
     (["[\\,]"], ",", False, True),
-    pytest.param(["[\\\\]"], "\\", False, True, marks=NOT_WINDOWS),
-    pytest.param(["[!\\\\]"], "\\", False, False, marks=NOT_WINDOWS),
+    (["[\\\\]"], "\\", False, True),
+    (["[!\\\\]"], "\\", False, False),
     (["[\\\\,]"], ",", False, True),
-    pytest.param(["[\\\\,]"], "\\", False, True, marks=NOT_WINDOWS),
-    pytest.param(["[[-\\]]"], "\\", False, True, marks=NOT_WINDOWS),
+    (["[\\\\,]"], "\\", False, True),
+    (["[[-\\]]"], "\\", False, True),
     (["[[-\\]]"], "[", False, True),
     (["[[-\\]]"], "]", False, True),
     (["[[-\\]]"], "-", False, False),
@@ -258,8 +253,8 @@ CASES = [
     (["[Z-y]"], "z", False, False),
     (["[Z-y]"], "z", True, True),
     (["[Z-y]"], "Z", False, True),
-    pytest.param(["[[:]ab"], ":ab", False, True, marks=NOT_WINDOWS),
-    pytest.param(["[:]ab"], ":ab", False, True, marks=NOT_WINDOWS),
+    (["[[:]ab"], ":ab", False, True),
+    (["[:]ab"], ":ab", False, True),
     # POSIX character classes:
     (["[[:alnum:]]"], "a", False, True),
     (["[[:alnum:]]"], "A", False, True),
@@ -270,53 +265,49 @@ CASES = [
     (["[[:alpha:]]"], "q", False, True),
     (["[[:alpha:]]"], "Q", False, True),
     (["[[:alpha:]]"], "7", False, False),
-    pytest.param(["[[:blank:]]"], " ", False, True, marks=NOT_WINDOWS),
-    pytest.param(["[[:blank:]]"], "\t", False, True, marks=NOT_WINDOWS),
-    pytest.param(["[[:blank:]]"], "\n", False, False, marks=NOT_WINDOWS),
-    pytest.param(["[[:blank:]]"], "\v", False, False, marks=NOT_WINDOWS),
+    (["[[:blank:]]"], " ", False, True),
+    (["[[:blank:]]"], "\t", False, True),
+    (["[[:blank:]]"], "\n", False, False),
+    (["[[:blank:]]"], "\v", False, False),
     (["[[:cntrl:]]"], "\x7F", False, True),
-    pytest.param(["[[:cntrl:]]"], "\n", False, True, marks=NOT_WINDOWS),
-    pytest.param(["[[:cntrl:]]"], "\t", False, True, marks=NOT_WINDOWS),
-    pytest.param(["[[:cntrl:]]"], " ", False, False, marks=NOT_WINDOWS),
+    (["[[:cntrl:]]"], "\n", False, True),
+    (["[[:cntrl:]]"], "\t", False, True),
+    (["[[:cntrl:]]"], " ", False, False),
     (["[[:cntrl:]]"], "^", False, False),
     (["[[:digit:]]"], "1", False, True),
     (["[[:digit:]]"], "a", False, False),
     (["[[:graph:]]"], "q", False, True),
     (["[[:graph:]]"], "Q", False, True),
-    pytest.param(["[[:graph:]]"], "*", False, True, marks=NOT_WINDOWS),
+    (["[[:graph:]]"], "*", False, True),
     (["[[:graph:]]"], "7", False, True),
-    pytest.param(["[[:graph:]]"], " ", False, False, marks=NOT_WINDOWS),
+    (["[[:graph:]]"], " ", False, False),
     (["[[:lower:]]oo"], "foo", False, True),
-    pytest.param(["[[:lower:]]oo"], "ðoo", False, False, marks=NOT_WIN_PYPY),
+    (["[[:lower:]]oo"], "ðoo", False, False),
     (["[[:lower:]]oo"], "Foo", True, True),
     (["[[:lower:]]oo"], "foo", True, True),
     (["[[:lower:]]oo"], "FOO", True, True),
     (["[[:print:]]"], "q", False, True),
     (["[[:print:]]"], "Q", False, True),
-    pytest.param(["[[:print:]]"], "*", False, True, marks=NOT_WINDOWS),
+    (["[[:print:]]"], "*", False, True),
     (["[[:print:]]"], "7", False, True),
-    pytest.param(["[[:print:]]"], " ", False, True, marks=NOT_WINDOWS),
-    pytest.param(["[[:print:]]"], "\t", False, False, marks=NOT_WINDOWS),
-    pytest.param(["[[:print:]]"], "\n", False, False, marks=NOT_WINDOWS),
-    pytest.param(["[[:punct:]]"], "*", False, True, marks=NOT_WINDOWS),
+    (["[[:print:]]"], " ", False, True),
+    (["[[:print:]]"], "\t", False, False),
+    (["[[:print:]]"], "\n", False, False),
+    (["[[:punct:]]"], "*", False, True),
     (["[[:punct:]]"], "_", False, True),
-    pytest.param(["[[:punct:]]"], "\\", False, True, marks=NOT_WINDOWS),
+    (["[[:punct:]]"], "\\", False, True),
     (["[[:punct:]]"], "~", False, True),
     (["[[:punct:]]"], "0", False, False),
     (["[[:punct:]]"], "p", False, False),
     (["foo[[:punct:]]bar"], "foo/bar", False, False),
     (["foo[^[:punct:]]bar"], "foo/bar", False, False),
     (["[^[:punct:]]"], "x", False, True),
-    pytest.param(["[[:space:]]"], "\t", False, True, marks=NOT_WINDOWS),
-    pytest.param(["[[:space:]]"], "\n", False, True, marks=NOT_WINDOWS),
-    pytest.param(
-        ["[[:space:]]"], "\v", False, False, marks=NOT_WINDOWS
-    ),  # Not matched by Git; bug?
-    pytest.param(
-        ["[[:space:]]"], "\f", False, False, marks=NOT_WINDOWS
-    ),  # Not matched by Git; bug?
-    pytest.param(["[[:space:]]"], "\r", False, True, marks=NOT_WINDOWS),
-    pytest.param(["[[:space:]]"], " ", False, True, marks=NOT_WINDOWS),
+    (["[[:space:]]"], "\t", False, True),
+    (["[[:space:]]"], "\n", False, True),
+    (["[[:space:]]"], "\v", False, False),  # Not matched by Git; bug?
+    (["[[:space:]]"], "\f", False, False),  # Not matched by Git; bug?
+    (["[[:space:]]"], "\r", False, True),
+    (["[[:space:]]"], " ", False, True),
     (["[[:upper:]]"], "A", False, True),
     (["[[:upper:]]"], "a", False, False),
     (["[[:upper:]]"], "a", True, True),
@@ -330,31 +321,25 @@ CASES = [
     (["[[:digit:][:upper:][:space:]]"], "a", True, True),
     (["[[:digit:][:upper:][:space:]]"], "A", False, True),
     (["[[:digit:][:upper:][:space:]]"], "1", False, True),
-    pytest.param(
-        ["[[:digit:][:upper:][:space:]]"], " ", False, True, marks=NOT_WINDOWS
-    ),
-    pytest.param(
-        ["[[:digit:][:upper:][:space:]]"], "*", False, False, marks=NOT_WINDOWS
-    ),
-    pytest.param(
-        ["[[:digit:][:punct:][:space:]]"], "*", False, True, marks=NOT_WINDOWS
-    ),
+    (["[[:digit:][:upper:][:space:]]"], " ", False, True),
+    (["[[:digit:][:upper:][:space:]]"], "*", False, False),
+    (["[[:digit:][:punct:][:space:]]"], "*", False, True),
     (["[a-c[:digit:]x-z]"], "5", False, True),
     (["[a-c[:digit:]x-z]"], "b", False, True),
     (["[a-c[:digit:]x-z]"], "y", False, True),
     (["[a-c[:digit:]x-z]"], "q", False, False),
     # Whitespace & comments:
-    pytest.param([" "], " ", False, False, marks=NOT_WINDOWS),
+    ([" "], " ", False, False),
     (["#comment"], "#comment", False, False),
     ([" #comment"], " #comment", False, True),
     (["trailing "], "trailing", False, True),
-    pytest.param(["trailing "], "trailing ", False, False, marks=NOT_WINDOWS),
-    pytest.param(["trailing\\ "], "trailing ", False, True, marks=NOT_WINDOWS),
-    pytest.param(["trailing\\  "], "trailing ", False, True, marks=NOT_WINDOWS),
-    pytest.param(["trailing\\  "], "trailing  ", False, False, marks=NOT_WINDOWS),
-    pytest.param(["trailing\\ \\ "], "trailing  ", False, True, marks=NOT_WINDOWS),
-    pytest.param(["trailing \\ "], "trailing  ", False, True, marks=NOT_WINDOWS),
-    pytest.param(["foo\v"], "foo\v", False, True, marks=NOT_WINDOWS),
+    (["trailing "], "trailing ", False, False),
+    (["trailing\\ "], "trailing ", False, True),
+    (["trailing\\  "], "trailing ", False, True),
+    (["trailing\\  "], "trailing  ", False, False),
+    (["trailing\\ \\ "], "trailing  ", False, True),
+    (["trailing \\ "], "trailing  ", False, True),
+    (["foo\v"], "foo\v", False, True),
     (["foo\v"], "foo", False, False),
     # Negation:
     (["!important"], "!important", False, False),
@@ -383,8 +368,8 @@ CASES = [
     (["/"], "foo", False, False),
     (["/"], "foo/", False, False),
     # Invalid patterns:
-    pytest.param(["\\"], "\\", False, False, marks=NOT_WINDOWS),
-    pytest.param(["foo\\/"], "foo\\/", False, False, marks=NOT_WINDOWS),
+    (["\\"], "\\", False, False),
+    (["foo\\/"], "foo\\/", False, False),
     (["foo\\/"], "foo/", False, False),
     (["[z-a]"], "q", False, False),
     (["[!"], "ab", False, False),
@@ -405,12 +390,14 @@ CASES = [
     (["[[:digit:][:upper:][:spaci:]]"], "1", False, False),
     (["[[::]ab]"], "[ab]", False, False),
     (["[[::]ab]"], "a", False, False),
-    pytest.param(["[[::]ab"], ":ab", False, False, marks=NOT_WINDOWS),
+    (["[[::]ab"], ":ab", False, False),
 ]
 
 
 @pytest.mark.parametrize("patterns,path,ignorecase,matched", CASES)
 def test_match(patterns: list[str], path: str, ignorecase: bool, matched: bool) -> None:
+    if "\\" in path and ON_WINDOWS:
+        pytest.skip("Backslashes are path separators on Windows")
     gi = gitmatch.compile(patterns, ignorecase=ignorecase)
     assert bool(gi.match(path)) is matched
     if matched and not ignorecase:
@@ -552,6 +539,11 @@ def repo(tmp_path_factory: pytest.TempPathFactory) -> Path:
 def test_check_against_git(
     repo: Path, patterns: list[str], path: str, ignorecase: bool, matched: bool
 ) -> None:
+    # <https://stackoverflow.com/a/31976060/744178>
+    if ON_WINDOWS and re.search(r'[<>:"\x5C|?*\0-\x1F]|[ .](/|\Z)', path):
+        pytest.skip("Path is invalid on Windows")
+    if ON_WINDOWS and ON_PYPY and not path.isascii():
+        pytest.skip("Non-ASCII filenames are a problem for PyPy on Windows")
     (repo / ".gitignore").write_text(join_terminated(patterns, "\n"), encoding="utf-8")
     p = Path(path)
     (repo / p).parent.mkdir(parents=True, exist_ok=True)
