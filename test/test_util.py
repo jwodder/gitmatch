@@ -1,3 +1,4 @@
+from __future__ import annotations
 import pytest
 from gitmatch import chomp, pathway, trim_trailing_spaces
 
