@@ -153,6 +153,7 @@ CASES = [
     (["[abc]ar"], "zar", False, False),
     (["[abc]ar"], "Bar", False, False),
     (["[abc]ar"], "Bar", True, True),
+    (["[b-b]ar"], "bar", False, True),
     (["*[ar]?"], "barr", False, True),
     (["*[ar]?"], "bart", False, True),
     (["*[ar]?"], "batr", False, False),
@@ -194,6 +195,7 @@ CASES = [
     (["f[^eiu][^eiu][^eiu][^eiu][^eiu]r"], "foo-bar", False, True),
     (["a[c-c]rt"], "acrt", False, True),
     (["[[]ab]"], "[ab]", False, True),
+    (["[[:]ab]"], "a", False, False),
     (["[[:]ab]"], "[ab]", False, True),
     (["[[:digit]ab]"], "[ab]", False, True),
     (["[\\[:]ab]"], "[ab]", False, True),
@@ -366,6 +368,7 @@ CASES = [
     pytest.param(["\\"], "\\", False, False, marks=NOT_WINDOWS),
     pytest.param(["foo\\/"], "foo\\/", False, False, marks=NOT_WINDOWS),
     (["foo\\/"], "foo/", False, False),
+    (["[z-a]"], "q", False, False),
     (["[!"], "ab", False, False),
     (["[!"], "[!", False, False),
     (["a[]b"], "ab", False, False),
@@ -384,7 +387,6 @@ CASES = [
     (["[[:digit:][:upper:][:spaci:]]"], "1", False, False),
     (["[[::]ab]"], "[ab]", False, False),
     (["[[::]ab]"], "a", False, False),
-    (["[[:]ab]"], "a", False, False),
     (["[[::]ab"], ":ab", False, False),
 ]
 
@@ -478,6 +480,35 @@ def test_retrieve_pattern() -> None:
     assert bool(m)
     assert m.pattern == "foo"
     assert m.path == "foo"
+
+
+@pytest.mark.parametrize("pattern", ["", " ", "#comment", "!", "!/", "/", "! ", "/ "])
+def test_empty_pattern(pattern: str) -> None:
+    assert gimatch.pattern2regex(pattern) is None
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        "\\",
+        "foo\\/",
+        "[z-a]",
+        "[!",
+        "a[]b",
+        "ab[",
+        "[-",
+        "[ab",
+        "[^ab",
+        "[[:XDIGIT:]]",
+        "[[:glarch:]]",
+        "[[::]ab]",
+        "[[::]ab",
+    ],
+)
+def test_invalid_pattern(pattern: str) -> None:
+    with pytest.raises(gimatch.InvalidPatternError) as excinfo:
+        gimatch.pattern2regex(pattern)
+    assert str(excinfo.value) == f"Invalid gitignore pattern: {pattern!r}"
 
 
 @pytest.fixture(scope="module")

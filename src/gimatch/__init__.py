@@ -402,11 +402,13 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
                     raise InvalidPatternError(f"Invalid gitignore pattern: {orig!r}")
                 pos += m.end() - m.start()
                 if m["left"] is not None:
-                    regex += (
-                        re.escape(m["left"][-1:])
-                        + strs.hyphen
-                        + re.escape(m["right"][-1:])
-                    )
+                    lchar = m["left"][-1:]
+                    rchar = m["right"][-1:]
+                    if ord(lchar) > ord(rchar):
+                        raise InvalidPatternError(
+                            f"Invalid gitignore pattern: {orig!r}"
+                        )
+                    regex += re.escape(lchar) + strs.hyphen + re.escape(rchar)
                 elif m["posix_class"] is not None:
                     try:
                         regex += strs.posix_classes[m["posix_class"]]
