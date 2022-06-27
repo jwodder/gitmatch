@@ -64,8 +64,9 @@ class Gitignore(Generic[AnyStr]):
         like an ``if ... :`` line.
 
         :raises InvalidPathError:
-            If ``path`` is empty, is absolute, is not normalized, contains a
-            NUL character, or starts with ``..``.
+            If ``path`` is empty, is absolute, is not normalized (aside from an
+            optional trailing slash), contains a NUL character, or starts with
+            ``..``.
         """
         orig = path
         path = os.fspath(path)
@@ -162,9 +163,13 @@ class Pattern(Generic[AnyStr]):
 
     def match(self, path: AnyStr, is_dir: bool = False) -> bool:
         """
-        Test whether the pattern matches the given path.  If ``is_dir`` is
+        Test whether the pattern matches the given path.  ``path`` is assumed
+        to be a relative, normalized, ``/``-separated path.  If ``is_dir`` is
         true, the path is assumed to refer to a directory; otherwise, it is
         assumed to refer to a file.
+
+        Unlike `Gitignore.match()`, this method only tests ``path`` itself, not
+        any of its parent paths.
         """
         if self.dir_only and not is_dir:
             return False

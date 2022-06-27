@@ -32,22 +32,52 @@ Installation
 Example
 =======
 
->>> import gitmatch
->>> gi = gitmatch.compile(["foo", "!bar"])
->>> bool(gi.match("foo"))
-True
->>> bool(gi.match("bar"))
-False
->>> bool(gi.match("quux"))
-False
->>> bool(gi.match("foo/quux"))
-True
->>> bool(gi.match("foo/bar"))
-True
->>> bool(gi.match("bar/foo"))
-True
->>> bool(gi.match("bar/quux"))
-False
+Basic usage::
+
+    >>> import gitmatch
+    >>> gi = gitmatch.compile(["foo", "!bar", "*.dir/"])
+    >>> bool(gi.match("foo"))
+    True
+    >>> bool(gi.match("bar"))
+    False
+    >>> bool(gi.match("quux"))
+    False
+    >>> bool(gi.match("foo/quux"))
+    True
+    >>> bool(gi.match("foo/bar"))
+    True
+    >>> bool(gi.match("bar/foo"))
+    True
+    >>> bool(gi.match("bar/quux"))
+    False
+    >>> bool(gi.match("foo.dir"))
+    False
+    >>> bool(gi.match("foo.dir/"))
+    True
+
+See what pattern was matched::
+
+    >>> m1 = gi.match("foo/bar")
+    >>> m1 is None
+    False
+    >>> bool(m1)
+    True
+    >>> m1.pattern
+    'foo'
+    >>> m1.path
+    'foo'
+    >>> m2 = gi.match("bar")
+    >>> m2 is None
+    False
+    >>> bool(m2)
+    False
+    >>> m2.pattern
+    '!bar'
+    >>> m2.pattern_obj.negative
+    True
+    >>> m3 = gi.match("quux")
+    >>> m3 is None
+    True
 
 
 Patterns
