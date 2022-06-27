@@ -6,7 +6,7 @@ import shutil
 import subprocess
 from linesep import join_terminated, split_terminated
 import pytest
-import gimatch
+import gitmatch
 
 NOT_WINDOWS = pytest.mark.skipif(os.name == "nt", reason="Do not run on Windows")
 
@@ -393,56 +393,56 @@ CASES = [
 
 @pytest.mark.parametrize("patterns,path,ignorecase,matched", CASES)
 def test_match(patterns: list[str], path: str, ignorecase: bool, matched: bool) -> None:
-    gi = gimatch.compile(patterns, ignorecase=ignorecase)
+    gi = gitmatch.compile(patterns, ignorecase=ignorecase)
     assert bool(gi.match(path)) is matched
     if matched and not ignorecase:
-        gii = gimatch.compile(patterns, ignorecase=True)
+        gii = gitmatch.compile(patterns, ignorecase=True)
         assert gii.match(path)
 
 
 def test_match_bytes() -> None:
-    gi = gimatch.compile([b"foo", b"!bar"])
+    gi = gitmatch.compile([b"foo", b"!bar"])
     assert gi.match(b"foo")
     assert not gi.match(b"bar")
     assert gi.match(b"foo/bar")
 
 
 def test_empty_path() -> None:
-    gi = gimatch.compile(["*"])
-    with pytest.raises(gimatch.InvalidPathError) as excinfo:
+    gi = gitmatch.compile(["*"])
+    with pytest.raises(gitmatch.InvalidPathError) as excinfo:
         gi.match("")
     assert str(excinfo.value) == "Empty path: ''"
 
 
 def test_nul_in_path() -> None:
-    gi = gimatch.compile(["*"])
-    with pytest.raises(gimatch.InvalidPathError) as excinfo:
+    gi = gitmatch.compile(["*"])
+    with pytest.raises(gitmatch.InvalidPathError) as excinfo:
         gi.match("foo\0bar")
     assert str(excinfo.value) == "Path contains NUL byte: 'foo\\x00bar'"
 
 
 def test_absolute_path() -> None:
     path = os.path.abspath(__file__)
-    gi = gimatch.compile(["*"])
-    with pytest.raises(gimatch.InvalidPathError) as excinfo:
+    gi = gitmatch.compile(["*"])
+    with pytest.raises(gitmatch.InvalidPathError) as excinfo:
         gi.match(path)
     assert str(excinfo.value) == f"Path is not relative: {path!r}"
 
 
 def test_windows_path() -> None:
-    gi = gimatch.compile(["bar"])
+    gi = gitmatch.compile(["bar"])
     assert gi.match(PureWindowsPath("foo", "bar"))
 
 
 def test_explicit_is_dir() -> None:
-    gi = gimatch.compile(["foo/"])
+    gi = gitmatch.compile(["foo/"])
     assert gi.match("foo", is_dir=True)
 
 
 @pytest.mark.parametrize("path", ["./foo", "foo/.", "foo/..", "foo//bar"])
 def test_nonnormalized_path(path: str) -> None:
-    gi = gimatch.compile(["*"])
-    with pytest.raises(gimatch.InvalidPathError) as excinfo:
+    gi = gitmatch.compile(["*"])
+    with pytest.raises(gitmatch.InvalidPathError) as excinfo:
         gi.match(path)
     assert str(excinfo.value) == f"Path is not normalized: {path!r}"
     assert excinfo.value.path == path
@@ -450,8 +450,8 @@ def test_nonnormalized_path(path: str) -> None:
 
 @pytest.mark.parametrize("path", ["..", "../", "../foo"])
 def test_pardir_path(path: str) -> None:
-    gi = gimatch.compile(["*"])
-    with pytest.raises(gimatch.InvalidPathError) as excinfo:
+    gi = gitmatch.compile(["*"])
+    with pytest.raises(gitmatch.InvalidPathError) as excinfo:
         gi.match(path)
     assert str(excinfo.value) == f"Path cannot begin with '..': {path!r}"
     assert excinfo.value.path == path
@@ -459,13 +459,13 @@ def test_pardir_path(path: str) -> None:
 
 @pytest.mark.parametrize("pattern", ["*", ".", "*/", "./", ".*", "[[:punct:]]"])
 def test_curdir_path(pattern: str) -> None:
-    gi = gimatch.compile([pattern])
+    gi = gitmatch.compile([pattern])
     assert not gi.match(".")
     assert not gi.match("./")
 
 
 def test_retrieve_pattern() -> None:
-    gi = gimatch.compile(["foo ", "!bar"])
+    gi = gitmatch.compile(["foo ", "!bar"])
     m = gi.match("foo")
     assert m is not None
     assert bool(m)
@@ -486,7 +486,7 @@ def test_retrieve_pattern() -> None:
 
 @pytest.mark.parametrize("pattern", ["", " ", "#comment", "!", "!/", "/", "! ", "/ "])
 def test_empty_pattern(pattern: str) -> None:
-    assert gimatch.pattern2regex(pattern) is None
+    assert gitmatch.pattern2regex(pattern) is None
 
 
 @pytest.mark.parametrize(
@@ -508,15 +508,15 @@ def test_empty_pattern(pattern: str) -> None:
     ],
 )
 def test_invalid_pattern(pattern: str) -> None:
-    with pytest.raises(gimatch.InvalidPatternError) as excinfo:
-        gimatch.pattern2regex(pattern)
+    with pytest.raises(gitmatch.InvalidPatternError) as excinfo:
+        gitmatch.pattern2regex(pattern)
     assert str(excinfo.value) == f"Invalid gitignore pattern: {pattern!r}"
     assert excinfo.value.pattern == pattern
 
 
 @pytest.mark.parametrize("pattern", ["foo\n", "foo\r", "foo\r\n"])
 def test_strip_newlines(pattern: str) -> None:
-    gi = gimatch.compile([pattern])
+    gi = gitmatch.compile([pattern])
     m = gi.match("foo")
     assert m is not None
     assert m.pattern == "foo"

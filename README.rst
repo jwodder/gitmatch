@@ -3,27 +3,27 @@
     :alt: Project Status: WIP — Initial development is in progress, but there
           has not yet been a stable, usable release suitable for the public.
 
-.. image:: https://github.com/jwodder/gimatch/workflows/Test/badge.svg?branch=master
-    :target: https://github.com/jwodder/gimatch/actions?workflow=Test
+.. image:: https://github.com/jwodder/gitmatch/workflows/Test/badge.svg?branch=master
+    :target: https://github.com/jwodder/gitmatch/actions?workflow=Test
     :alt: CI Status
 
-.. image:: https://codecov.io/gh/jwodder/gimatch/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/jwodder/gimatch
+.. image:: https://codecov.io/gh/jwodder/gitmatch/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/jwodder/gitmatch
 
-.. image:: https://img.shields.io/github/license/jwodder/gimatch.svg
+.. image:: https://img.shields.io/github/license/jwodder/gitmatch.svg
     :target: https://opensource.org/licenses/MIT
     :alt: MIT License
 
-`GitHub <https://github.com/jwodder/gimatch>`_
-| `Issues <https://github.com/jwodder/gimatch/issues>`_
+`GitHub <https://github.com/jwodder/gitmatch>`_
+| `Issues <https://github.com/jwodder/gitmatch/issues>`_
 
-``gimatch`` provides ``gitignore``-style pattern matching of file paths.
+``gitmatch`` provides ``gitignore``-style pattern matching of file paths.
 Simply pass in a sequence of ``gitignore`` patterns and you'll get back an
 object for testing whether a given relative path matches the patterns.
 
 Installation
 ============
-``gimatch`` requires Python 3.7 or higher.  Just use `pip
+``gitmatch`` requires Python 3.7 or higher.  Just use `pip
 <https://pip.pypa.io>`_ for Python 3 (You have pip, right?) to install it::
 
     python3 -m pip install git+https://github.com/jwodder/gitmatch
@@ -32,8 +32,8 @@ Installation
 Example
 =======
 
->>> import gimatch
->>> gi = gimatch.compile(["foo", "!bar"])
+>>> import gitmatch
+>>> gi = gitmatch.compile(["foo", "!bar"])
 >>> bool(gi.match("foo"))
 True
 >>> bool(gi.match("bar"))
@@ -53,7 +53,7 @@ False
 Patterns
 ========
 
-The pattern language used by ``gimatch`` is intended to match that of Git's
+The pattern language used by ``gitmatch`` is intended to match that of Git's
 `gitignore(5)`__ as of v2.36.1, including the undocumented features (mainly
 involving character classes) present in Git's code.
 
@@ -158,12 +158,12 @@ Strings vs. Bytes
 While it's usual in Python to work with ``str`` values of Unicode characters,
 Git instead operates on bytes.  As a result, if a path or pattern contains
 non-ASCII characters, you may get different results using ``str``\s with
-``gimatch`` than you would with Git.  For example, in Git, a file named
+``gitmatch`` than you would with Git.  For example, in Git, a file named
 "``tést``" will not be matched by the gitignore pattern ``t?st``, because the
 ``é`` is encoded using more than one byte (assuming UTF-8), but if you pass
-these strings to ``gimatch``, the path will match (assuming the ``é`` is in
+these strings to ``gitmatch``, the path will match (assuming the ``é`` is in
 composed form, which is a whole other can of worms).  If you want Git's
-behavior exactly, pass ``bytes`` to ``gimatch`` instead of ``str`` (ideally
+behavior exactly, pass ``bytes`` to ``gitmatch`` instead of ``str`` (ideally
 encoded using ``os.fsencode()``).
 
 Note that the patterns passed to a single call to ``compile()`` must be either

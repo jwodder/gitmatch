@@ -1,11 +1,11 @@
 """
 Gitignore-style path matching
 
-``gimatch`` provides ``gitignore``-style pattern matching of file paths.
+``gitmatch`` provides ``gitignore``-style pattern matching of file paths.
 Simply pass in a sequence of ``gitignore`` patterns and you'll get back an
 object for testing whether a given relative path matches the patterns.
 
-Visit <https://github.com/jwodder/gimatch> for more information.
+Visit <https://github.com/jwodder/gitmatch> for more information.
 """
 
 from __future__ import annotations
@@ -19,9 +19,9 @@ from typing import Any, AnyStr, Generic, Optional
 
 __version__ = "0.1.0.dev1"
 __author__ = "John Thorvald Wodder II"
-__author_email__ = "gimatch@varonathe.org"
+__author_email__ = "gitmatch@varonathe.org"
 __license__ = "MIT"
-__url__ = "https://github.com/jwodder/gimatch"
+__url__ = "https://github.com/jwodder/gitmatch"
 
 __all__ = [
     "Gitignore",

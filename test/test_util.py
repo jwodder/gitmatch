@@ -1,5 +1,5 @@
 import pytest
-from gimatch import chomp, pathway, trim_trailing_spaces
+from gitmatch import chomp, pathway, trim_trailing_spaces
 
 
 @pytest.mark.parametrize(
