@@ -26,11 +26,36 @@ __url__ = "https://github.com/jwodder/gimatch"
 
 @dataclass
 class Gitignore(Generic[AnyStr]):
+    """A collection of compiled gitignore patterns"""
+
     patterns: list[Pattern[AnyStr]]
 
     def match(
         self, path: AnyStr | os.PathLike[AnyStr], is_dir: bool = False
     ) -> Optional[Match[AnyStr]]:
+        """
+        Test whether the given relative path matches the collection of
+        patterns.  If ``is_dir`` is true or if ``path`` ends in a slash,
+        ``path`` is treated as a path to a directory; otherwise, it treated as
+        a path to a file.
+
+        If on Windows, or if ``path`` is an instance of
+        `pathlib.PureWindowsPath`, any backslashes in ``path`` will be
+        converted to forward slashes before matching.
+
+        If a match is found, a `Match` object is returned containing
+        information about the matching pattern and the path or portion thereof
+        that matched.  The `Match` object may be either "truthy" or "falsy"
+        depending on whether the matching pattern is negative or not.  If none
+        of the patterns match the path, `match()` returns `None`.  Hence, if
+        you're just interested in whether the patterns say the path should be
+        gitignored, call `bool()` on the result or use it in a boolean context
+        like an ``if ... :`` line.
+
+        :raises InvalidPathError:
+            If ``path`` is empty, is absolute, is not normalized, contains a
+            NUL character, or starts with ``..``.
+        """
         orig = path
         path = os.fspath(path)
         if isinstance(path, str):
@@ -80,11 +105,24 @@ class Gitignore(Generic[AnyStr]):
 
 @dataclass
 class Match(Generic[AnyStr]):
+    """
+    Information about a successful match of a path against a pattern.  A
+    `Match` is truthy if the pattern was not negative and falsy otherwise.
+    """
+
+    #: The compiled `Pattern` object that matched the path
     pattern_obj: Pattern[AnyStr]
+
+    #: The path that matched.  This may be a parent path of the value passed to
+    #: `~Gitignore.match()`.
     path: AnyStr
 
     @property
     def pattern(self) -> AnyStr:
+        """
+        The original gitignore pattern provided to `compile()`, with trailing
+        spaces stripped
+        """
         return self.pattern_obj.pattern
 
     def __bool__(self) -> bool:
@@ -93,12 +131,30 @@ class Match(Generic[AnyStr]):
 
 @dataclass
 class Pattern(Generic[AnyStr]):
+    """A compiled gitignore pattern"""
+
+    #: The original gitignore pattern provided to `compile()`, with trailing
+    #: spaces stripped
     pattern: AnyStr
+
+    #: A compiled regular expression pattern
     regex: re.Pattern[AnyStr]
+
+    #: Whether the pattern is negative or not
     negative: bool
+
+    #: Whether the pattern only matches directories
     dir_only: bool
 
+    #: Whether the pattern is case-insensitive
+    ignorecase: bool
+
     def match(self, path: AnyStr, is_dir: bool = False) -> bool:
+        """
+        Test whether the pattern matches the given path.  If ``is_dir`` is
+        true, the path is assumed to refer to a directory; otherwise, it is
+        assumed to refer to a file.
+        """
         if self.dir_only and not is_dir:
             return False
         return bool(self.regex.fullmatch(path))
@@ -106,21 +162,43 @@ class Pattern(Generic[AnyStr]):
 
 @dataclass
 class Regex(Generic[AnyStr]):
+    """A gitignore pattern that has been converted to a regular expression"""
+
+    #: The original gitignore pattern provided to `compile()`, with trailing
+    #: spaces stripped
     pattern: AnyStr
+
+    #: The regular expression equivalent of the pattern
     regex: AnyStr
+
+    #: Whether the pattern is negative or not
     negative: bool
+
+    #: Whether the pattern only matches directories
     dir_only: bool
 
+    #: Whether the pattern is case-insensitive
+    ignorecase: bool
+
     def compile(self) -> Pattern[AnyStr]:
+        """Compile the regular expression"""
         return Pattern(
             pattern=self.pattern,
             regex=re.compile(self.regex),
             negative=self.negative,
             dir_only=self.dir_only,
+            ignorecase=self.ignorecase,
         )
 
 
 def compile(patterns: Iterable[AnyStr], ignorecase: bool = False) -> Gitignore[AnyStr]:
+    """
+    Compile a collection of gitignore patterns into a `Gitignore` instance.
+    Any invalid or empty patterns are discarded.
+
+    :param bool ignorecase:
+        Whether the patterns should match case-insensitively
+    """
     compiled_patterns: list[Pattern[AnyStr]] = []
     for pat in patterns:
         try:
@@ -135,6 +213,10 @@ def compile(patterns: Iterable[AnyStr], ignorecase: bool = False) -> Gitignore[A
 
 @dataclass
 class ParserStrs(Generic[AnyStr]):
+    """
+    A collection of either `str` or `bytes` constants used by `pattern2regex()`
+    """
+
     posix_classes: dict[AnyStr, AnyStr]
     parser: re.Pattern[AnyStr]
     range_parser: re.Pattern[AnyStr]
@@ -242,6 +324,12 @@ PARSER_BYTES = PARSER_STRS.encode()
 
 
 def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[AnyStr]]:
+    """
+    Convert a gitignore pattern to a regular expression and return a `Regex`
+    object.  If the pattern is empty or a comment, returns `None`.
+
+    :raises InvalidPatternError: If the given pattern is invalid
+    """
     strs: ParserStrs
     if isinstance(pattern, str):
         strs = PARSER_STRS
@@ -329,18 +417,28 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
         else:
             raise AssertionError("Unhandled pattern structure")  # pragma: no cover
     regex += strs.end
-    return Regex(pattern=source, regex=regex, negative=negative, dir_only=dir_only)
+    return Regex(
+        pattern=source,
+        regex=regex,
+        negative=negative,
+        dir_only=dir_only,
+        ignorecase=ignorecase,
+    )
 
 
 class InvalidPathError(ValueError):
-    pass
+    """Raised by `Gitignore.match()` when given an invalid path"""
 
 
 class InvalidPatternError(ValueError):
-    pass
+    """Raised by `pattern2regex()` when given an invalid pattern"""
 
 
 def pathway(path: AnyStr) -> list[AnyStr]:
+    """
+    Return a list of parent paths of ``path`` (not including the root) plus
+    ``path`` itself
+    """
     pway: list[AnyStr] = []
     while path:
         pway.append(path)
@@ -355,6 +453,7 @@ TRIM_BYTES = re.compile(TRIM_RGX.encode("us-ascii"))
 
 
 def trim_trailing_spaces(s: AnyStr) -> AnyStr:
+    """Remove trailing unescaped space and tab characters from ``s``"""
     if isinstance(s, str):
         rgx = TRIM_STR
         keep = r"\g<keep>"
