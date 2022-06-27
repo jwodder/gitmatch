@@ -2,13 +2,21 @@ from __future__ import annotations
 import os
 import os.path
 from pathlib import Path, PureWindowsPath
+import platform
 import shutil
 import subprocess
 from linesep import join_terminated, split_terminated
 import pytest
 import gitmatch
 
-NOT_WINDOWS = pytest.mark.skipif(os.name == "nt", reason="Do not run on Windows")
+NOT_WINDOWS = pytest.mark.skipif(
+    os.name == "nt", reason="Test uses an invalid filename on Windows"
+)
+
+NOT_WIN_PYPY = pytest.mark.skipif(
+    os.name == "nt" and platform.python_implementation() == "PyPy",
+    reason="Non-ASCII filenames are a problem for PyPy on Windows",
+)
 
 # Patterns, path, ignorecase, matched
 CASES = [
@@ -49,7 +57,7 @@ CASES = [
     (["f*o"], "fo", False, True),
     (["f*o"], "fglarcho", False, True),
     (["f*o"], "f/o", False, False),
-    (["f*o"], "føo", False, True),
+    pytest.param(["f*o"], "føo", False, True, marks=NOT_WIN_PYPY),
     (["f/*o"], "f/o", False, True),
     (["f/*o"], "f/glarch/o", False, False),
     (["*"], "foo", False, True),
@@ -279,7 +287,7 @@ CASES = [
     (["[[:graph:]]"], "7", False, True),
     pytest.param(["[[:graph:]]"], " ", False, False, marks=NOT_WINDOWS),
     (["[[:lower:]]oo"], "foo", False, True),
-    (["[[:lower:]]oo"], "ðoo", False, False),
+    pytest.param(["[[:lower:]]oo"], "ðoo", False, False, marks=NOT_WIN_PYPY),
     (["[[:lower:]]oo"], "Foo", True, True),
     (["[[:lower:]]oo"], "foo", True, True),
     (["[[:lower:]]oo"], "FOO", True, True),
