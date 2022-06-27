@@ -23,6 +23,17 @@ __author_email__ = "gimatch@varonathe.org"
 __license__ = "MIT"
 __url__ = "https://github.com/jwodder/gimatch"
 
+__all__ = [
+    "Gitignore",
+    "InvalidPathError",
+    "InvalidPatternError",
+    "Match",
+    "Pattern",
+    "Regex",
+    "compile",
+    "pattern2regex",
+]
+
 
 @dataclass
 class Gitignore(Generic[AnyStr]):
