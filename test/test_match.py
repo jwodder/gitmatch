@@ -445,6 +445,7 @@ def test_nonnormalized_path(path: str) -> None:
     with pytest.raises(gimatch.InvalidPathError) as excinfo:
         gi.match(path)
     assert str(excinfo.value) == f"Path is not normalized: {path!r}"
+    assert excinfo.value.path == path
 
 
 @pytest.mark.parametrize("path", ["..", "../", "../foo"])
@@ -453,6 +454,7 @@ def test_pardir_path(path: str) -> None:
     with pytest.raises(gimatch.InvalidPathError) as excinfo:
         gi.match(path)
     assert str(excinfo.value) == f"Path cannot begin with '..': {path!r}"
+    assert excinfo.value.path == path
 
 
 @pytest.mark.parametrize("pattern", ["*", ".", "*/", "./", ".*", "[[:punct:]]"])
@@ -509,6 +511,7 @@ def test_invalid_pattern(pattern: str) -> None:
     with pytest.raises(gimatch.InvalidPatternError) as excinfo:
         gimatch.pattern2regex(pattern)
     assert str(excinfo.value) == f"Invalid gitignore pattern: {pattern!r}"
+    assert excinfo.value.pattern == pattern
 
 
 @pytest.mark.parametrize("pattern", ["foo\n", "foo\r", "foo\r\n"])

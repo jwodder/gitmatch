@@ -84,11 +84,11 @@ class Gitignore(Generic[AnyStr]):
             CURDIR = b"."
             PARDIR = b".."
         if not path:
-            raise InvalidPathError(f"Empty path: {orig!r}")
+            raise InvalidPathError("Empty path", orig)
         if NUL in path:
-            raise InvalidPathError(f"Path contains NUL byte: {orig!r}")
+            raise InvalidPathError("Path contains NUL byte", orig)
         if os.path.isabs(path):
-            raise InvalidPathError(f"Path is not relative: {orig!r}")
+            raise InvalidPathError("Path is not relative", orig)
         if SEP != SLASH:
             path = path.replace(SEP, SLASH)
         elif isinstance(orig, PureWindowsPath):
@@ -97,9 +97,9 @@ class Gitignore(Generic[AnyStr]):
             is_dir = True
             path = path[:-1]
         if posixpath.normpath(path) != path:
-            raise InvalidPathError(f"Path is not normalized: {orig!r}")
+            raise InvalidPathError("Path is not normalized", orig)
         if path.split(SLASH)[0] == PARDIR:
-            raise InvalidPathError(f"Path cannot begin with '..': {orig!r}")
+            raise InvalidPathError("Path cannot begin with '..'", orig)
         if path == CURDIR:
             return None
         for p in pathway(path):
@@ -382,7 +382,7 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
     while pos < len(pattern):
         m = strs.parser.match(pattern, pos)
         if not m:
-            raise InvalidPatternError(f"Invalid gitignore pattern: {orig!r}")
+            raise InvalidPatternError(orig)
         pos += m.end() - m.start()
         if m["slash_globstar"] is not None:
             regex += strs.slash_globstar
@@ -405,23 +405,19 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
             while True:
                 m = strs.range_parser.match(pattern, pos)
                 if not m:
-                    raise InvalidPatternError(f"Invalid gitignore pattern: {orig!r}")
+                    raise InvalidPatternError(orig)
                 pos += m.end() - m.start()
                 if m["left"] is not None:
                     lchar = m["left"][-1:]
                     rchar = m["right"][-1:]
                     if ord(lchar) > ord(rchar):
-                        raise InvalidPatternError(
-                            f"Invalid gitignore pattern: {orig!r}"
-                        )
+                        raise InvalidPatternError(orig)
                     regex += re.escape(lchar) + strs.hyphen + re.escape(rchar)
                 elif m["posix_class"] is not None:
                     try:
                         regex += strs.posix_classes[m["posix_class"]]
                     except KeyError:
-                        raise InvalidPatternError(
-                            f"Invalid gitignore pattern: {orig!r}"
-                        )
+                        raise InvalidPatternError(orig)
                 elif m["char"] is not None:
                     regex += re.escape(m["char"][-1:])
                 elif m["end"] is not None:
@@ -448,9 +444,27 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
 class InvalidPathError(ValueError):
     """Raised by `Gitignore.match()` when given an invalid path"""
 
+    def __init__(
+        self, msg: str, path: str | bytes | os.PathLike[str] | os.PathLike[bytes]
+    ) -> None:
+        #: A description of the problem with the path
+        self.msg = msg
+        #: The invalid path
+        self.path = path
+
+    def __str__(self) -> str:
+        return f"{self.msg}: {self.path!r}"
+
 
 class InvalidPatternError(ValueError):
     """Raised by `pattern2regex()` when given an invalid pattern"""
+
+    def __init__(self, pattern: str | bytes) -> None:
+        #: The invalid pattern
+        self.pattern = pattern
+
+    def __str__(self) -> str:
+        return f"Invalid gitignore pattern: {self.pattern!r}"
 
 
 def pathway(path: AnyStr) -> list[AnyStr]:
