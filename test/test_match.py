@@ -36,6 +36,12 @@ CASES = [
     (["foo/"], "bar/foo", False, False),
     (["foo/"], "bar/foo/", False, True),
     (["foo/"], "bar/foo/quux", False, True),
+    (["foo//"], "foo", False, False),
+    (["foo//"], "foo/", False, False),
+    (["foo//"], "foo/bar", False, False),
+    (["foo//"], "foo/bar/", False, False),
+    (["foo///"], "foo/", False, False),
+    (["foo////"], "foo/", False, False),
     # Leading & internal slash:
     (["/foo"], "foo", False, True),
     (["/foo"], "bar/foo", False, False),
@@ -305,10 +311,12 @@ CASES = [
     (["[^[:punct:]]"], "x", False, True),
     (["[[:space:]]"], "\t", False, True),
     (["[[:space:]]"], "\n", False, True),
-    (["[[:space:]]"], "\v", False, False),  # Not matched by Git; bug?
-    (["[[:space:]]"], "\f", False, False),  # Not matched by Git; bug?
     (["[[:space:]]"], "\r", False, True),
     (["[[:space:]]"], " ", False, True),
+    # These two are deliberately not matched by Git's custom isspace() for some
+    # reason:
+    (["[[:space:]]"], "\v", False, False),
+    (["[[:space:]]"], "\f", False, False),
     (["[[:upper:]]"], "A", False, True),
     (["[[:upper:]]"], "a", False, False),
     (["[[:upper:]]"], "a", True, True),
@@ -555,10 +563,10 @@ def test_check_against_git(
     (repo / p).parent.mkdir(parents=True, exist_ok=True)
     if path.endswith("/"):
         (repo / p).mkdir()
-        if len(p.parts) == 1:
-            # An empty directory will never show up in `git status`, so we need
-            # to put something in it
-            (repo / p / "XYZZY").touch()
+        # A tree containing only directories will only show up in `git status`
+        # if it's ignored, so in order to ensure a "status" entry for `path`,
+        # we add a file.
+        (repo / p / "XYZZY").touch()
     else:
         (repo / p).touch()
     # Don't use git-check-ignore, as it's not 100% accurate for directories
