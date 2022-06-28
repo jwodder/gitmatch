@@ -1,7 +1,7 @@
 from __future__ import annotations
 import os
 import os.path
-from pathlib import Path, PureWindowsPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import platform
 import re
 import shutil
@@ -433,6 +433,11 @@ def test_absolute_path() -> None:
     with pytest.raises(gitmatch.InvalidPathError) as excinfo:
         gi.match(path)
     assert str(excinfo.value) == f"Path is not relative: {path!r}"
+
+
+def test_posix_path() -> None:
+    gi = gitmatch.compile([r"foo\\bar"])
+    assert gi.match(PurePosixPath("foo\\bar", "quux"))
 
 
 def test_windows_path() -> None:

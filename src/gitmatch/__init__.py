@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 import os
-from pathlib import PureWindowsPath
+from pathlib import PurePosixPath, PureWindowsPath
 import posixpath
 import re
 from typing import Any, AnyStr, Generic, Optional
@@ -50,7 +50,8 @@ class Gitignore(Generic[AnyStr]):
         ``path`` is treated as a path to a directory; otherwise, it treated as
         a path to a file.
 
-        If on Windows, or if ``path`` is an instance of
+        If on Windows and ``path`` is not an instance of
+        `pathlib.PurePosixPath`, or if on any OS and ``path`` is an instance of
         `pathlib.PureWindowsPath`, any backslashes in ``path`` will be
         converted to forward slashes before matching.
 
@@ -90,7 +91,7 @@ class Gitignore(Generic[AnyStr]):
             raise InvalidPathError("Path contains NUL byte", orig)
         if os.path.isabs(path):
             raise InvalidPathError("Path is not relative", orig)
-        if SEP != SLASH:
+        if SEP != SLASH and not isinstance(orig, PurePosixPath):
             path = path.replace(SEP, SLASH)
         elif isinstance(orig, PureWindowsPath):
             path = path.replace(WINSEP, SLASH)
