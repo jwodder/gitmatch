@@ -28,6 +28,7 @@ CASES = [
     (["foo"], "foo/bar/baz", False, True),
     (["foo"], "FOO", False, False),
     (["foo"], "FOO", True, True),
+    ([r"foo\\bar"], "foo/bar", False, False),
     # Trailing slash:
     (["foo/"], "foo", False, False),
     (["foo/"], "foo/", False, True),
