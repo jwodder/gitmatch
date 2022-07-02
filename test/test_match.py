@@ -524,6 +524,7 @@ def test_empty_pattern(pattern: str) -> None:
         "[[:glarch:]]",
         "[[::]ab]",
         "[[::]ab",
+        "foo\0bar",
     ],
 )
 def test_invalid_pattern(pattern: str) -> None:
