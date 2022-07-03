@@ -1,22 +1,18 @@
-.. image:: http://www.repostatus.org/badges/latest/wip.svg
-    :target: http://www.repostatus.org/#wip
-    :alt: Project Status: WIP — Initial development is in progress, but there
-          has not yet been a stable, usable release suitable for the public.
+.. module:: gitmatch
 
-.. image:: https://github.com/jwodder/gitmatch/workflows/Test/badge.svg?branch=master
-    :target: https://github.com/jwodder/gitmatch/actions?workflow=Test
-    :alt: CI Status
-
-.. image:: https://codecov.io/gh/jwodder/gitmatch/branch/master/graph/badge.svg
-    :target: https://codecov.io/gh/jwodder/gitmatch
-
-.. image:: https://img.shields.io/github/license/jwodder/gitmatch.svg
-    :target: https://opensource.org/licenses/MIT
-    :alt: MIT License
+========================================
+gitmatch — Gitignore-style path matching
+========================================
 
 `GitHub <https://github.com/jwodder/gitmatch>`_
 | `Documentation <https://gitmatch.readthedocs.io>`_
 | `Issues <https://github.com/jwodder/gitmatch/issues>`_
+
+.. toctree::
+    :hidden:
+
+    patterns
+    api
 
 ``gitmatch`` provides ``gitignore``-style pattern matching of file paths.
 Simply pass in a sequence of ``gitignore`` patterns and you'll get back an
@@ -28,7 +24,6 @@ Installation
 <https://pip.pypa.io>`_ for Python 3 (You have pip, right?) to install it::
 
     python3 -m pip install git+https://github.com/jwodder/gitmatch
-
 
 Examples
 ========
@@ -79,3 +74,9 @@ See what pattern was matched::
     >>> m3 = gi.match("quux")
     >>> m3 is None
     True
+
+
+Indices and tables
+==================
+* :ref:`genindex`
+* :ref:`search`

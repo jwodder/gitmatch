@@ -5,7 +5,8 @@ Gitignore-style path matching
 Simply pass in a sequence of ``gitignore`` patterns and you'll get back an
 object for testing whether a given relative path matches the patterns.
 
-Visit <https://github.com/jwodder/gitmatch> for more information.
+Visit <https://github.com/jwodder/gitmatch> or <https://gitmatch.rtfd.io> for
+more information.
 """
 
 from __future__ import annotations
@@ -39,6 +40,7 @@ __all__ = [
 class Gitignore(Generic[AnyStr]):
     """A collection of compiled gitignore patterns"""
 
+    #: :meta private:
     patterns: list[Pattern[AnyStr]]
 
     def match(
@@ -219,8 +221,9 @@ def compile(patterns: Iterable[AnyStr], ignorecase: bool = False) -> Gitignore[A
     .. code:: python
 
         with open("path/to/.gitignore") as fp:
-            gi = compile(fp)
+            gi = gitmatch.compile(fp)
 
+    :param patterns: an iterable of gitignore patterns
     :param bool ignorecase:
         Whether the patterns should match case-insensitively
     """
@@ -351,6 +354,8 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[A
     Convert a gitignore pattern to a regular expression and return a `Regex`
     object.  If the pattern is empty or a comment, returns `None`.
 
+    :param pattern: a gitignore pattern
+    :param bool ignorecase: Whether the pattern should match case-insensitively
     :raises InvalidPatternError: If the given pattern is invalid
     """
     strs: ParserStrs
