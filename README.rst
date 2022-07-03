@@ -29,8 +29,8 @@ Installation
     python3 -m pip install git+https://github.com/jwodder/gitmatch
 
 
-Example
-=======
+Examples
+========
 
 Basic usage::
 
