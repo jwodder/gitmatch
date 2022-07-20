@@ -5,6 +5,7 @@ gitmatch — Gitignore-style path matching
 ========================================
 
 `GitHub <https://github.com/jwodder/gitmatch>`_
+| `PyPI <https://pypi.org/project/gitmatch/>`_
 | `Documentation <https://gitmatch.readthedocs.io>`_
 | `Issues <https://github.com/jwodder/gitmatch/issues>`_
 
@@ -23,7 +24,7 @@ Installation
 ``gitmatch`` requires Python 3.7 or higher.  Just use `pip
 <https://pip.pypa.io>`_ for Python 3 (You have pip, right?) to install it::
 
-    python3 -m pip install git+https://github.com/jwodder/gitmatch
+    python3 -m pip install gitmatch
 
 Examples
 ========

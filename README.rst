@@ -1,7 +1,7 @@
-.. image:: http://www.repostatus.org/badges/latest/wip.svg
-    :target: http://www.repostatus.org/#wip
-    :alt: Project Status: WIP — Initial development is in progress, but there
-          has not yet been a stable, usable release suitable for the public.
+.. image:: http://www.repostatus.org/badges/latest/active.svg
+    :target: http://www.repostatus.org/#active
+    :alt: Project Status: Active — The project has reached a stable, usable
+          state and is being actively developed.
 
 .. image:: https://github.com/jwodder/gitmatch/workflows/Test/badge.svg?branch=master
     :target: https://github.com/jwodder/gitmatch/actions?workflow=Test
@@ -10,11 +10,15 @@
 .. image:: https://codecov.io/gh/jwodder/gitmatch/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/jwodder/gitmatch
 
+.. image:: https://img.shields.io/pypi/pyversions/gitmatch.svg
+    :target: https://pypi.org/project/gitmatch/
+
 .. image:: https://img.shields.io/github/license/jwodder/gitmatch.svg
     :target: https://opensource.org/licenses/MIT
     :alt: MIT License
 
 `GitHub <https://github.com/jwodder/gitmatch>`_
+| `PyPI <https://pypi.org/project/gitmatch/>`_
 | `Documentation <https://gitmatch.readthedocs.io>`_
 | `Issues <https://github.com/jwodder/gitmatch/issues>`_
 
@@ -27,7 +31,7 @@ Installation
 ``gitmatch`` requires Python 3.7 or higher.  Just use `pip
 <https://pip.pypa.io>`_ for Python 3 (You have pip, right?) to install it::
 
-    python3 -m pip install git+https://github.com/jwodder/gitmatch
+    python3 -m pip install gitmatch
 
 
 Examples
