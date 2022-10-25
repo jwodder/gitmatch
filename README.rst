@@ -21,6 +21,7 @@
 | `PyPI <https://pypi.org/project/gitmatch/>`_
 | `Documentation <https://gitmatch.readthedocs.io>`_
 | `Issues <https://github.com/jwodder/gitmatch/issues>`_
+| `Changelog <https://github.com/jwodder/gitmatch/blob/master/CHANGELOG.md>`_
 
 ``gitmatch`` provides ``gitignore``-style pattern matching of file paths.
 Simply pass in a sequence of ``gitignore`` patterns and you'll get back an

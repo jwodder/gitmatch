@@ -8,12 +8,14 @@ gitmatch — Gitignore-style path matching
 | `PyPI <https://pypi.org/project/gitmatch/>`_
 | `Documentation <https://gitmatch.readthedocs.io>`_
 | `Issues <https://github.com/jwodder/gitmatch/issues>`_
+| :doc:`Changelog <changelog>`
 
 .. toctree::
     :hidden:
 
     patterns
     api
+    changelog
 
 ``gitmatch`` provides ``gitignore``-style pattern matching of file paths.
 Simply pass in a sequence of ``gitignore`` patterns and you'll get back an
