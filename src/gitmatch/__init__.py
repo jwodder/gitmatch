@@ -199,7 +199,7 @@ class Regex(Generic[AnyStr]):
     #: Whether the pattern is case-insensitive
     ignorecase: bool
 
-    def compile(self) -> Pattern[AnyStr]:
+    def compile(self) -> Pattern[AnyStr]:  # noqa: A003
         """Compile the regular expression"""
         return Pattern(
             pattern=self.pattern,
@@ -210,7 +210,9 @@ class Regex(Generic[AnyStr]):
         )
 
 
-def compile(patterns: Iterable[AnyStr], ignorecase: bool = False) -> Gitignore[AnyStr]:
+def compile(  # noqa: A001
+    patterns: Iterable[AnyStr], ignorecase: bool = False
+) -> Gitignore[AnyStr]:
     """
     Compile a collection of gitignore patterns into a `Gitignore` instance.
     Any invalid or empty patterns are discarded.
