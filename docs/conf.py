@@ -2,7 +2,7 @@ from gitmatch import __version__
 
 project = "gitmatch"
 author = "John Thorvald Wodder II"
-copyright = "2022 John Thorvald Wodder II"
+copyright = "2022 John Thorvald Wodder II"  # noqa: A001
 
 extensions = [
     "sphinx.ext.autodoc",
