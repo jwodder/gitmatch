@@ -93,9 +93,10 @@ Specifically:
   by a character (after stripping a final ``/``) produces an invalid pattern
   that will not match anything.
 
-- If a directory path matches a pattern list, then all files & directories
-  within that directory recursively will match as well, regardless of any
-  negative patterns that may apply to them
+- If a parent directory of a given path matches a pattern list, then the given
+  path (and the paths of all other files & directories recursively within the
+  matching parent) will match the list as well, regardless of any negative
+  patterns that may be present
 
 - Patterns cannot contain the NUL character
 
