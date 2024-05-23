@@ -362,6 +362,8 @@ CASES = [
     (["trailing\\  "], "trailing  ", False, False),
     (["trailing\\ \\ "], "trailing  ", False, True),
     (["trailing \\ "], "trailing  ", False, True),
+    ([" foo"], " foo", False, True),
+    ([" foo"], "foo", False, False),
     (["foo\v"], "foo\v", False, True),
     (["foo\v"], "foo", False, False),
     # Negation:
