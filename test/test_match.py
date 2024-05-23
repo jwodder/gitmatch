@@ -29,6 +29,8 @@ CASES = [
     (["foo"], "FOO", False, False),
     (["foo"], "FOO", True, True),
     ([r"foo\\bar"], "foo/bar", False, False),
+    (["eð.txt"], "eð.txt", False, True),
+    (["eð.txt"], "eÐ.txt", True, False),
     # Trailing slash:
     (["foo/"], "foo", False, False),
     (["foo/"], "foo/", False, True),
