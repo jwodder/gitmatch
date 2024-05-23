@@ -63,6 +63,7 @@ CASES = [
     (["f?o"], "f/o", False, False),
     (["??"], "foo", False, False),
     (["???"], "foo", False, True),
+    (["e?.txt", "e??.txt"], "eð.txt", False, True),
     # Single asterisk:
     (["f*o"], "foo", False, True),
     (["f*o"], "fo", False, True),
@@ -92,6 +93,7 @@ CASES = [
     (["foo/*"], "foo/bar", False, True),
     (["*/bar*"], "foo/bar", False, True),
     (["*/bar*"], "foo/bar/baz", False, True),
+    (["e*.txt"], "eð.txt", False, True),
     # Double asterisk:
     (["foo**"], "foo", False, True),
     (["foo**"], "foo/bar/baz", False, True),
