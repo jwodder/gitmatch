@@ -220,6 +220,7 @@ CASES = [
     (["foo[\\q]bar"], "foo\\bar", False, False),
     (["foo[\\/]bar"], "foo/bar", False, False),
     (["foo[ab/]bar"], "foo/bar", False, False),
+    (["foo[ab/]bar"], "fooabar", False, True),
     (["foo[^a]bar"], "foo/bar", False, False),
     (["f[^eiu][^eiu][^eiu][^eiu][^eiu]r"], "foo/bar", False, False),
     (["f[^eiu][^eiu][^eiu][^eiu][^eiu]r"], "foo-bar", False, True),
