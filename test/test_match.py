@@ -212,6 +212,8 @@ CASES = [
     (["[!]-]"], "]", False, False),
     (["[!]-]"], "a", False, True),
     (["foo[/]bar"], "foo/bar", False, False),
+    (["foo[\\q]bar"], "fooqbar", False, True),
+    (["foo[\\q]bar"], "foo\\bar", False, False),
     (["foo[\\/]bar"], "foo/bar", False, False),
     (["foo[ab/]bar"], "foo/bar", False, False),
     (["foo[^a]bar"], "foo/bar", False, False),
