@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 import os
+import os.path
 from pathlib import PurePosixPath, PureWindowsPath
 import posixpath
 import re
@@ -34,6 +35,8 @@ __all__ = [
     "compile",
     "pattern2regex",
 ]
+
+ON_WINDOWS = os.name == "nt"
 
 
 @dataclass
@@ -525,6 +528,8 @@ def is_complex_path(path: AnyStr | os.PathLike[AnyStr]) -> bool:
     """
     if os.path.isabs(path):
         return True
+    elif ON_WINDOWS:
+        return bool(os.path.splitdrive(path)[0])
     elif isinstance(path, PureWindowsPath):
         return bool(path.anchor)
     else:
