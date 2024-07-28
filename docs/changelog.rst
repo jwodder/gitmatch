@@ -3,8 +3,8 @@
 Changelog
 =========
 
-v0.2.0 (in development)
------------------------
+v0.2.0 (2024-07-28)
+-------------------
 - Support Python 3.11 and 3.12
 - Migrated from setuptools to hatch
 - Drop support for Python 3.7
