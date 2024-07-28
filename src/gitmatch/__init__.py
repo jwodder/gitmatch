@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass
 import os
+import os.path
 from pathlib import PurePosixPath, PureWindowsPath
 import posixpath
 import re
@@ -34,6 +35,8 @@ __all__ = [
     "compile",
     "pattern2regex",
 ]
+
+ON_WINDOWS = os.name == "nt"
 
 
 @dataclass
@@ -67,9 +70,9 @@ class Gitignore(Generic[AnyStr]):
         like an ``if ... :`` line.
 
         :raises InvalidPathError:
-            If ``path`` is empty, is absolute, is not normalized (aside from an
-            optional trailing slash), contains a NUL character, or starts with
-            ``..``.
+            If ``path`` is empty, is absolute, has an anchor (Windows paths
+            only), is not normalized (aside from an optional trailing slash),
+            contains a NUL character, or starts with ``..``
         """
         orig = path
         path = os.fspath(path)
@@ -91,7 +94,7 @@ class Gitignore(Generic[AnyStr]):
             raise InvalidPathError("Empty path", orig)
         if NUL in path:
             raise InvalidPathError("Path contains NUL byte", orig)
-        if os.path.isabs(path):
+        if is_complex_path(path):
             raise InvalidPathError("Path is not relative", orig)
         if SEP != SLASH and not isinstance(orig, PurePosixPath):
             path = path.replace(SEP, SLASH)
@@ -516,3 +519,18 @@ def chomp(s: AnyStr) -> AnyStr:
     if s and ord(s[-1:]) == 13:
         s = s[:-1]
     return s
+
+
+def is_complex_path(path: AnyStr | os.PathLike[AnyStr]) -> bool:
+    """
+    Returns true if `path` is absolute or (Windows only) contains any parts
+    other than a directory and/or file path
+    """
+    if os.path.isabs(path):
+        return True
+    elif ON_WINDOWS:
+        return bool(os.path.splitdrive(path)[0])
+    elif isinstance(path, PureWindowsPath):
+        return bool(path.anchor)
+    else:
+        return False
