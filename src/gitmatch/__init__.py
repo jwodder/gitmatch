@@ -17,9 +17,10 @@ import os.path
 from pathlib import PurePosixPath, PureWindowsPath
 import posixpath
 import re
+import sys
 from typing import Any, AnyStr, Generic, Optional
 
-__version__ = "0.2.0"
+__version__ = "0.2.1.dev1"
 __author__ = "John Thorvald Wodder II"
 __author_email__ = "gitmatch@varonathe.org"
 __license__ = "MIT"
@@ -529,6 +530,13 @@ def is_complex_path(path: AnyStr | os.PathLike[AnyStr]) -> bool:
     if os.path.isabs(path):
         return True
     elif ON_WINDOWS:
+        if sys.version_info[:2] >= (3, 13):
+            # isabs() changed in Python 3.13 to not regard paths starting with
+            # just one (back)slash as absolute on Windows
+            p = os.fsencode(path)
+            if re.match(rb"/(?!/)|\\(?!\\)", p):
+                # <https://github.com/python/mypy/issues/18210>
+                return True  # type: ignore[no-any-return]
         return bool(os.path.splitdrive(path)[0])
     elif isinstance(path, PureWindowsPath):
         return bool(path.anchor)

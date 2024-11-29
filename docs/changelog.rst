@@ -3,6 +3,10 @@
 Changelog
 =========
 
+v0.2.1 (in development)
+-----------------------
+- Support Python 3.13
+
 v0.2.0 (2024-07-28)
 -------------------
 - Support Python 3.11 and 3.12
