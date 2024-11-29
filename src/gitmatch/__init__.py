@@ -535,7 +535,8 @@ def is_complex_path(path: AnyStr | os.PathLike[AnyStr]) -> bool:
             # just one (back)slash as absolute on Windows
             p = os.fsencode(path)
             if re.match(rb"/(?!/)|\\(?!\\)", p):
-                return True
+                # <https://github.com/python/mypy/issues/18210>
+                return True  # type: ignore[no-any-return]
         return bool(os.path.splitdrive(path)[0])
     elif isinstance(path, PureWindowsPath):
         return bool(path.anchor)
