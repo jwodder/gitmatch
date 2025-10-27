@@ -303,7 +303,7 @@ CASES = [
     (["[[:blank:]]"], "\t", False, True),
     (["[[:blank:]]"], "\n", False, False),
     (["[[:blank:]]"], "\v", False, False),
-    (["[[:cntrl:]]"], "\x7F", False, True),
+    (["[[:cntrl:]]"], "\x7f", False, True),
     (["[[:cntrl:]]"], "\n", False, True),
     (["[[:cntrl:]]"], "\t", False, True),
     (["[[:cntrl:]]"], " ", False, False),

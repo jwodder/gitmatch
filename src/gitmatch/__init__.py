@@ -468,6 +468,7 @@ class InvalidPathError(ValueError):
         self.msg = msg
         #: The invalid path
         self.path = path
+        super().__init__(msg, path)
 
     def __str__(self) -> str:
         return f"{self.msg}: {self.path!r}"
@@ -479,6 +480,7 @@ class InvalidPatternError(ValueError):
     def __init__(self, pattern: str | bytes) -> None:
         #: The invalid pattern
         self.pattern = pattern
+        super().__init__(pattern)
 
     def __str__(self) -> str:
         return f"Invalid gitignore pattern: {self.pattern!r}"
