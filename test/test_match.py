@@ -615,11 +615,11 @@ def test_check_against_git(
         stdout=subprocess.PIPE,
         # Don't use `text=True`, as that translates newlines in filenames
     )
-    ((status, statpath),) = [
+    ((status, statpath),) = (
         (line[:2], line[3:])
         for line in split_terminated(os.fsdecode(r.stdout), "\0")
         if line[3:] != ".gitignore"
-    ]
+    )
     pathway = gitmatch.pathway(path)
     for i in range(len(pathway) - 1):
         pathway[i] += "/"
