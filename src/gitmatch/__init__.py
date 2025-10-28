@@ -18,9 +18,9 @@ from pathlib import PurePosixPath, PureWindowsPath
 import posixpath
 import re
 import sys
-from typing import Any, AnyStr, Generic, Optional
+from typing import Any, AnyStr, Generic
 
-__version__ = "0.2.1"
+__version__ = "0.3.0.dev1"
 __author__ = "John Thorvald Wodder II"
 __author_email__ = "gitmatch@varonathe.org"
 __license__ = "MIT"
@@ -49,7 +49,7 @@ class Gitignore(Generic[AnyStr]):
 
     def match(
         self, path: AnyStr | os.PathLike[AnyStr], is_dir: bool = False
-    ) -> Optional[Match[AnyStr]]:
+    ) -> Match[AnyStr] | None:
         """
         Test whether the given relative path matches the collection of
         patterns.  If ``is_dir`` is true or if ``path`` ends in a slash,
@@ -355,7 +355,7 @@ PARSER_STRS = ParserStrs(
 PARSER_BYTES = PARSER_STRS.encode()
 
 
-def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Optional[Regex[AnyStr]]:
+def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Regex[AnyStr] | None:
     """
     Convert a gitignore pattern to a regular expression and return a `Regex`
     object.  If the pattern is empty or a comment, returns `None`.
