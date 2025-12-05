@@ -44,8 +44,6 @@ Specifically:
   ``foo/gnusto/cleesh/bar``, etc, but not ``fooxbar``.  Any following ``**/``
   (e.g., as in ``foo/**/**/**/bar``) are redundant.
 
-- A medial ``**/`` matches zero or more of any character, including ``/``
-
 - ``**`` in any other context is the same as ``*``
 
 - ``[`` starts a character class, which must be terminated by ``]``.  A

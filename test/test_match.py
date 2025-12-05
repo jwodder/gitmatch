@@ -119,9 +119,14 @@ CASES = [
     (["foo/**bar"], "foo/bar", False, True),
     (["foo/**bar"], "foo/qbar", False, True),
     (["foo/**bar"], "foo/glarch/bar", False, False),
-    (["foo**/bar"], "foo/glarch/bar", False, True),  # Is this a bug in Git?
-    (["foo**/bar"], "fooq/glarch/bar", False, True),  # Is this a bug in Git?
-    (["foo**/bar"], "foobar", False, True),  # Is this a bug in Git?
+    (["foo**/bar"], "foo/glarch/bar", False, False),  # matched = True prior to Git 2.52
+    (
+        ["foo**/bar"],
+        "fooq/glarch/bar",
+        False,
+        False,  # matched = True prior to Git 2.52
+    ),
+    (["foo**/bar"], "foobar", False, False),  # matched = True prior to Git 2.52
     (["foo**/bar"], "foo/bar", False, True),
     (["foo**/bar"], "fooq/bar", False, True),
     (["foo/**/bar"], "foo/bar", False, True),
