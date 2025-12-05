@@ -265,7 +265,6 @@ class ParserStrs(Generic[AnyStr]):
     unanchored_start: AnyStr
     slash_globstar: AnyStr
     slash_globstar_slash: AnyStr
-    globstar_slash: AnyStr
     qm: AnyStr
     star: AnyStr
     openrange: AnyStr
@@ -314,7 +313,6 @@ PARSER_STRS = ParserStrs(
         r"""
         (?P<slash_globstar>/\*\*\Z)
         |(?P<slash_globstar_slash>/\*\*(/\*\*)*/)
-        |(?P<globstar_slash>\*\*/(\*\*/)*)
         |(?P<qm>\?)
         |(?P<star>\*\*?)
         |(?P<openrange>\[)
@@ -342,7 +340,6 @@ PARSER_STRS = ParserStrs(
     unanchored_start=r"(?:[^/\0]+/)*",
     slash_globstar=r"(?:(?:/[^/\0]+)+/?|/)",
     slash_globstar_slash=r"/(?:[^/\0]+/)*",
-    globstar_slash=r"(?:[^/\0]*/)?(?:[^/\0]+/)*",
     qm=r"[^/\0]",
     star=r"[^/\0]*",
     openrange=r"(?![/\0])[",
@@ -405,8 +402,6 @@ def pattern2regex(pattern: AnyStr, ignorecase: bool = False) -> Regex[AnyStr] | 
             regex += strs.slash_globstar
         elif m["slash_globstar_slash"] is not None:
             regex += strs.slash_globstar_slash
-        elif m["globstar_slash"] is not None:
-            regex += strs.globstar_slash
         elif m["qm"] is not None:
             regex += strs.qm
         elif m["star"] is not None:

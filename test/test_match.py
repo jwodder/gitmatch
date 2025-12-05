@@ -119,9 +119,14 @@ CASES = [
     (["foo/**bar"], "foo/bar", False, True),
     (["foo/**bar"], "foo/qbar", False, True),
     (["foo/**bar"], "foo/glarch/bar", False, False),
-    (["foo**/bar"], "foo/glarch/bar", False, True),  # Is this a bug in Git?
-    (["foo**/bar"], "fooq/glarch/bar", False, True),  # Is this a bug in Git?
-    (["foo**/bar"], "foobar", False, True),  # Is this a bug in Git?
+    (["foo**/bar"], "foo/glarch/bar", False, False),  # matched = True prior to Git 2.52
+    (
+        ["foo**/bar"],
+        "fooq/glarch/bar",
+        False,
+        False,  # matched = True prior to Git 2.52
+    ),
+    (["foo**/bar"], "foobar", False, False),  # matched = True prior to Git 2.52
     (["foo**/bar"], "foo/bar", False, True),
     (["foo**/bar"], "fooq/bar", False, True),
     (["foo/**/bar"], "foo/bar", False, True),
@@ -588,6 +593,18 @@ def test_check_against_git(
         pytest.skip("Path is invalid on Windows")
     if ON_WINDOWS and ON_PYPY and not path.isascii():
         pytest.skip("Non-ASCII filenames are a problem for PyPy on Windows")
+    if any(re.search(r"[^/]\*\*/", p) for p in patterns):
+        v = subprocess.run(
+            ["git", "--version"], check=True, stdout=subprocess.PIPE, text=True
+        )
+        if m := re.fullmatch(
+            r"git version ([\d.]+)(\.windows\.\d+)?", v.stdout.strip()
+        ):
+            version = tuple(map(int, m[1].split(".")))
+            if version < (2, 52, 0):
+                pytest.skip("Semantics of medial globstar-slash changed in Git 2.52.0")
+        else:
+            raise ValueError(f"Could not parse git version: {v.stdout!r}")
     (repo / ".gitignore").write_text(join_terminated(patterns, "\n"), encoding="utf-8")
     p = Path(path)
     (repo / p).parent.mkdir(parents=True, exist_ok=True)
