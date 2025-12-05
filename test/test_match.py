@@ -597,7 +597,9 @@ def test_check_against_git(
         v = subprocess.run(
             ["git", "--version"], check=True, stdout=subprocess.PIPE, text=True
         )
-        if m := re.fullmatch(r"git version ([\d.]+)", v.stdout.strip()):
+        if m := re.fullmatch(
+            r"git version ([\d.]+)(\.windows\.\d+)?", v.stdout.strip()
+        ):
             version = tuple(map(int, m[1].split(".")))
             if version < (2, 52, 0):
                 pytest.skip("Semantics of medial globstar-slash changed in Git 2.52.0")
