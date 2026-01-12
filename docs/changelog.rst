@@ -8,6 +8,7 @@ v0.3.0 (2025-12-05)
 - Support Python 3.14
 - Drop support for Python 3.8 and 3.9
 - Medial ``**/`` is no longer treated as a ``*`` that can match ``/``
+
     - This aligns with a bugfix in Git 2.52.0.
 
 v0.2.1 (2024-11-29)
