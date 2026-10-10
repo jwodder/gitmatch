@@ -3,6 +3,11 @@
 Changelog
 =========
 
+v0.4.0 (in development)
+-----------------------
+- Support Python 3.15
+
+
 v0.3.0 (2025-12-05)
 -------------------
 - Support Python 3.14
@@ -11,9 +16,11 @@ v0.3.0 (2025-12-05)
 
     - This aligns with a bugfix in Git 2.52.0.
 
+
 v0.2.1 (2024-11-29)
 -------------------
 - Support Python 3.13
+
 
 v0.2.0 (2024-07-28)
 -------------------
@@ -22,6 +29,7 @@ v0.2.0 (2024-07-28)
 - Drop support for Python 3.7
 - `Gitignore.match()` will now raise `InvalidPathError` for Windows paths with
   anchors
+
 
 v0.1.0 (2022-07-20)
 -------------------
